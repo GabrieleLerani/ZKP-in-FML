@@ -3,8 +3,11 @@ from torch.utils.data import DataLoader
 from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner, LinearPartitioner, ExponentialPartitioner, PathologicalPartitioner, SquarePartitioner
 from flwr_datasets.visualization import plot_label_distributions
-from matplotlib import pyplot as plt
 from tqdm import tqdm
+import pandas as pd
+import numpy as np
+from utils import entropy_score
+from matplotlib import pyplot as plt
 
 class DatasetLoader:
     def __init__(self, num_partitions, dist="linear", plot_label_distribution=True, alpha=1, batch_size=32):
@@ -45,16 +48,55 @@ class DatasetLoader:
                 dataset="ylecun/mnist",
                 partitioners={"train": partitioner},
             )
-            partitioner = self.fds.partitioners["train"]
-            
+
+
             if self.plot_label_distribution:
-                plot_label_distributions(partitioner=partitioner, label_name=f"label {self.distribution}", verbose_labels=True)        
+                partitioner = self.fds.partitioners["train"]
+                plot_label_distributions(partitioner=partitioner, label_name=f"label", verbose_labels=True)        
                 plt.savefig(f"plots/label_dist_{self.distribution}.png")
-            
+                
 
-    def load_data(self) -> tuple[list[DataLoader], list[DataLoader], list[DataLoader]]:
+    def compute_partition_score(self) -> dict[int, float]:
+        """
+        Compute a score for each partition based on class distribution and entropy.
+
+        This method calculates a score for each partition in the federated dataset. The score
+        is based on two factors:
+        1. The relative size of the partition compared to the largest partition.
+        2. The entropy of the class distribution within the partition.
+
+        The final score is the average of these two factors, resulting in a value between 0 and 1.
+        A higher score indicates a more balanced and diverse partition.
+
+        Returns:
+            dict[int, float]: A dictionary mapping partition IDs to their computed scores.
+        """
+        # Count the number of samples for each class in each partition
+        partition_class_counts = {
+            partition_id: self.fds.load_partition(partition_id, "train")
+                .select_columns(['label'])
+                .to_pandas()['label']
+                .value_counts()
+                .to_dict()
+            for partition_id in range(self.num_partitions)
+        }
         
+        # Create a DataFrame from the class counts and fill missing values with 0
+        df = pd.DataFrame(partition_class_counts).T.fillna(0)
+        num_classes = df.shape[1]
+        max_samples_per_partition = df.sum(axis=1).max()
+        
+        # Compute scores for each partition
+        scores = {
+            partition_id: (row.sum() / max_samples_per_partition + entropy_score(row, num_classes)) / 2
+            for partition_id, row in df.iterrows()
+        }
 
+        return scores
+
+
+    
+    def load_data(self) -> tuple[list[DataLoader], list[DataLoader], list[DataLoader]]:
         train_loaders = []
         val_loaders = []
         test_loader = []

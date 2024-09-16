@@ -2,7 +2,7 @@ num_rounds: 10
 num_clients: 10
 
 dataset:
-  distribution: square
+  distribution: dirichlet
   plot_label_distribution: True
   alpha: 1
   batch_size: 128

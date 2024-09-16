@@ -18,6 +18,8 @@ def main(
         cfg.dataset.batch_size
     )
     
+
+    scores = dataset_loader.compute_partition_score()    
     #train_loaders, val_loaders, test_loaders = dataset_loader.load_data()
 
     
