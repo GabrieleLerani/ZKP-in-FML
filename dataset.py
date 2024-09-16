@@ -8,15 +8,25 @@ import pandas as pd
 import numpy as np
 from utils import entropy_score
 from matplotlib import pyplot as plt
+import os
 
 class DatasetLoader:
-    def __init__(self, num_partitions, dist="linear", plot_label_distribution=True, alpha=1, batch_size=32):
+    def __init__(
+            self, 
+            num_partitions, 
+            dist="linear", 
+            plot_label_distribution=True, 
+            alpha=1, 
+            batch_size=32,
+            plots_folder="plots"
+        ):
         self.num_partitions = num_partitions
         self.distribution = dist
         self.plot_label_distribution = plot_label_distribution
         self.alpha = alpha
         self.batch_size = batch_size
         self.fds = None
+        self.plots_folder = plots_folder
         self.transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
@@ -41,8 +51,10 @@ class DatasetLoader:
                 partitioner = PathologicalPartitioner(num_partitions=self.num_partitions, partition_by="label", num_classes_per_partition=2, class_assignment_mode="deterministic")
             elif self.distribution == "square":
                 partitioner = SquarePartitioner(num_partitions=self.num_partitions)
-            else:
+            elif self.distribution == "iid":
                 partitioner = IidPartitioner(num_partitions=self.num_partitions)
+            else:
+                raise ValueError(f"Distribution {self.distribution} not supported") 
             
             self.fds = FederatedDataset(
                 dataset="ylecun/mnist",
@@ -53,7 +65,11 @@ class DatasetLoader:
             if self.plot_label_distribution:
                 partitioner = self.fds.partitioners["train"]
                 plot_label_distributions(partitioner=partitioner, label_name=f"label", verbose_labels=True)        
-                plt.savefig(f"plots/label_dist_{self.distribution}.png")
+                
+                label_dist_path = os.path.join(self.plots_folder, "label_dist")
+                if not os.path.exists(label_dist_path):
+                    os.makedirs(label_dist_path)
+                plt.savefig(f"{label_dist_path}/{self.distribution}.png")
                 
 
     def compute_partition_score(self) -> dict[int, float]:
@@ -91,6 +107,14 @@ class DatasetLoader:
             partition_id: (row.sum() / max_samples_per_partition + entropy_score(row, num_classes)) / 2
             for partition_id, row in df.iterrows()
         }
+
+        # Save scores to a file
+        label_dist_path = os.path.join(self.plots_folder, "scores")
+        if not os.path.exists(label_dist_path):
+            os.makedirs(label_dist_path)
+        
+        file_path = os.path.join(label_dist_path, f"{self.distribution}.npy")
+        np.save(file_path, scores)
 
         return scores
 

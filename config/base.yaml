@@ -2,8 +2,9 @@ num_rounds: 10
 num_clients: 10
 
 dataset:
-  distribution: dirichlet
+  distribution: linear
   plot_label_distribution: True
+  plot_scores: False
   alpha: 1
   batch_size: 128
 
