@@ -1,0 +1,9 @@
+torch
+torchvision
+torchaudio
+pytorch-lightning
+hydra-core
+flwr
+matplotlib
+fedartml
+flwr-datasets[vision]
