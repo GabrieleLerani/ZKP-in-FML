@@ -26,6 +26,7 @@ class DatasetLoader:
         self.alpha = alpha
         self.batch_size = batch_size
         self.fds = None
+        self.centralized_test_loader = None # used for centralized evaluation on server
         self.plots_folder = plots_folder
         self.transform = transforms.Compose([
             transforms.ToTensor(),
@@ -126,6 +127,14 @@ class DatasetLoader:
         train_loaders = []
         val_loaders = []
         test_loader = []
+
+        centralized_test_loader = self.fds.load_split("test").with_transform(self._apply_transforms)
+
+        self.centralized_test_loader = DataLoader(
+            centralized_test_loader,
+            batch_size=self.batch_size,
+            num_workers=7
+        )
 
 
         for partition_id in tqdm(range(self.num_partitions), desc="Loading partitions"):

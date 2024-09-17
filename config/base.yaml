@@ -1,4 +1,4 @@
-num_rounds: 1
+num_rounds: 3
 num_clients: 3
 
 dataset:

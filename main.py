@@ -30,7 +30,6 @@ def main(
     # 2. compute scores of dataset for each client
     scores = dataset_loader.compute_partition_score()    
 
-    # 3. generate client function to pass to the server
     client_fn = generate_client_fn(
         train_loaders,
         val_loaders,
@@ -40,41 +39,28 @@ def main(
         cfg['trainer']
     )
 
-    # 4. train model
-    server_app = ServerApp(server_fn=generate_server_fn(cfg))
-    # strategy = fl.server.strategy.FedAvg(
-    #     fraction_fit=1.0,
-    #     fraction_evaluate=1.0,
-    #     min_fit_clients=cfg.num_clients,
-    #     min_evaluate_clients=cfg.num_clients,
-    #     min_available_clients=cfg.num_clients,
-    #     # evaluate_metrics_aggregation_fn=None, # TODO use the metrics to decide the weight of the client
-    #     # on_fit_config_fn=None, # TODO use the config to decide the config to send to the client
-    #     # evaluate_fn=None # TODO define the evaluation function on the server
-    # )
+    server_fn = generate_server_fn(
+        cfg, 
+        dataset_loader.num_classes, 
+        dataset_loader.centralized_test_loader, 
+        cfg['trainer']
+    )
 
-
+    # 3. generate client function
     client_app = ClientApp(client_fn=client_fn)
 
+    # 4. generate server function
+    server_app = ServerApp(server_fn=server_fn)
+
+
+    # 5. run simulation
     run_simulation(
         server_app=server_app,
         client_app=client_app,
         num_supernodes=cfg.num_clients,
-        verbose_logging=True
+        verbose_logging=False
     )
     
-
-    # 5. start simulation
-    # history = fl.simulation.start_simulation(
-    #     client_fn=client_fn,
-    #     num_clients=cfg.num_clients,
-    #     config=fl.server.ServerConfig(num_rounds=cfg.num_rounds),
-    #     strategy=strategy
-    # )   
-
-    # 6. save the simulation history
-
-
 
 if __name__ == "__main__":
     main()

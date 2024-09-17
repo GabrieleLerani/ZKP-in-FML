@@ -17,6 +17,7 @@ class FlowerClient(NumPyClient):
 
     def __init__(
         self, 
+        cid: int,
         trainloader: DataLoader,
         valloader: DataLoader,
         testloader: DataLoader,
@@ -26,6 +27,7 @@ class FlowerClient(NumPyClient):
     ) -> None:
         super().__init__()
 
+        self.cid = cid
         # the dataloaders that point to the data associated to this client
         self.trainloader = trainloader
         self.valloader = valloader
@@ -62,7 +64,7 @@ class FlowerClient(NumPyClient):
         # copy parameters sent by the server into client's local model
         self.set_parameters(parameters)
 
-        log(DEBUG, f"Client {self.cid} is doing fit() with config: {config}")
+        
 
         self.trainer.fit(self.model, self.trainloader, self.valloader)
 
@@ -80,7 +82,7 @@ class FlowerClient(NumPyClient):
 
         loss = metrics[0]["test_loss"]
         
-
+        log(INFO, f"Client {self.cid} is doing evaluate() with loss: {loss}")
         return float(loss), len(self.valloader), {}
 
 
@@ -105,6 +107,7 @@ def generate_client_fn(
         cid = context.node_config["partition-id"]
 
         return FlowerClient(
+            cid=cid,
             trainloader=trainloaders[int(cid)],
             valloader=valloaders[int(cid)],
             testloader=testloaders[int(cid)],
