@@ -1,25 +1,24 @@
-num_rounds: 10
-num_clients: 10
+num_rounds: 1
+num_clients: 3
 
 dataset:
   distribution: linear
-  plot_label_distribution: True
-  plot_scores: False
+  plot_label_distribution: False
   alpha: 1
-  batch_size: 128
+  batch_size: 32
 
 
-config_fit:
-  num_epochs: 10
-  learning_rate: 0.01
+trainer:
+  num_epochs: 2
+  lr: 0.01
 
 # Comment the two sections below to make hydra generate the files again
-defaults:  
-  - _self_  
-  - override hydra/hydra_logging: disabled
-  - override hydra/job_logging: disabled
+# defaults:  
+#   - _self_  
+#   - override hydra/hydra_logging: disabled
+#   - override hydra/job_logging: disabled
 
-hydra:
-  output_subdir: null
-  run:
-    dir: .
+# hydra:
+#   output_subdir: null
+#   run:
+#     dir: .

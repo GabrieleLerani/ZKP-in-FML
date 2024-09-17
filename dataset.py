@@ -31,6 +31,7 @@ class DatasetLoader:
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])
+        self.num_classes = None
         self._initialize_federated_dataset()
 
     def _apply_transforms(self, batch):
@@ -61,6 +62,9 @@ class DatasetLoader:
                 partitioners={"train": partitioner},
             )
 
+            # Determine the number of classes
+            sample_partition = self.fds.load_partition(0, "train")
+            self.num_classes = len(sample_partition.select_columns(['label']).to_pandas()['label'].unique())
 
             if self.plot_label_distribution:
                 partitioner = self.fds.partitioners["train"]
@@ -99,12 +103,11 @@ class DatasetLoader:
         
         # Create a DataFrame from the class counts and fill missing values with 0
         df = pd.DataFrame(partition_class_counts).T.fillna(0)
-        num_classes = df.shape[1]
         max_samples_per_partition = df.sum(axis=1).max()
         
         # Compute scores for each partition
         scores = {
-            partition_id: (row.sum() / max_samples_per_partition + entropy_score(row, num_classes)) / 2
+            partition_id: (row.sum() / max_samples_per_partition + entropy_score(row, self.num_classes)) / 2
             for partition_id, row in df.iterrows()
         }
 
@@ -119,7 +122,6 @@ class DatasetLoader:
         return scores
 
 
-    
     def load_data(self) -> tuple[list[DataLoader], list[DataLoader], list[DataLoader]]:
         train_loaders = []
         val_loaders = []
@@ -128,24 +130,31 @@ class DatasetLoader:
 
         for partition_id in tqdm(range(self.num_partitions), desc="Loading partitions"):
             partition = self.fds.load_partition(partition_id, "train")
+            # apply transformation to tensor and normalize
             partition = partition.with_transform(self._apply_transforms)
 
-            # Split data: 20% for federated evaluation, 60% for federated train, 20% for federated validation
+            # Divide data on each node: 80% train, 20% test
             partition_full = partition.train_test_split(test_size=0.2, seed=42)
+            
+            # Divide further train on each node: 75% train, 25% validation
             partition_train_valid = partition_full["train"].train_test_split(train_size=0.75, seed=42)
 
             trainloader = DataLoader(
                 partition_train_valid["train"],
                 batch_size=self.batch_size,
                 shuffle=True,
-                num_workers=2,
+                num_workers=7,
             )
             valloader = DataLoader(
                 partition_train_valid["test"],
                 batch_size=self.batch_size,
-                num_workers=2,
+                num_workers=7,
             )
-            testloader = DataLoader(partition_full["test"], batch_size=self.batch_size, num_workers=1)
+            testloader = DataLoader(
+                partition_full["test"], 
+                batch_size=self.batch_size, 
+                num_workers=7
+            )
 
             train_loaders.append(trainloader)
             val_loaders.append(valloader)

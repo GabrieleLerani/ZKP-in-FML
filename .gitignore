@@ -7,6 +7,9 @@ env/
 # Hydra
 outputs/
 
+# Pytorch Lightning
+lightning_logs/
+
 # Python byte-compiled files
 __pycache__/
 *.py[cod]
