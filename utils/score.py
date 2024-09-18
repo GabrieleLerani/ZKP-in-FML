@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
+
 def entropy_score(row: pd.Series, num_classes: int) -> float:
     """
     Calculate the entropy score for a given distribution of classes.
@@ -73,6 +74,8 @@ def plot_contribution_2d(L_range, d_fixed, gammas):
 
     plt.tight_layout()
     plt.show()
+
+    
 
 # # Parameters
 # L_values = np.linspace(0.001, 20, 1000)

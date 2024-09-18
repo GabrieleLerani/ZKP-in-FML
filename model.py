@@ -84,7 +84,7 @@ def train(
         epoch_loss /= len(trainloader)
         epoch_acc = accuracy_metric.compute()
         
-        log(INFO, f"Epoch {epoch+1}: train loss {epoch_loss:.4f}, accuracy {epoch_acc:.4f}")
+        #log(INFO, f"Epoch {epoch+1}: train loss {epoch_loss:.4f}, accuracy {epoch_acc:.4f}")
 
     return epoch_loss, epoch_acc.item()
 

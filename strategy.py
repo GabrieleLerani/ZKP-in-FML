@@ -21,6 +21,9 @@ from typing import List, Tuple, Union, Optional, Dict
 from logging import INFO, DEBUG, WARNING
 from flwr.server.strategy.aggregate import weighted_loss_avg
 
+def keep_top_k(d, k):
+    return dict(sorted(d.items(), key=lambda x: x[1], reverse=True)[:k])
+
 class ContributionFedAvg(FedAvg):
     """Federated Averaging strategy that selects clients based on their contribution scores.
 
@@ -38,10 +41,12 @@ class ContributionFedAvg(FedAvg):
         Additional keyword arguments to be passed to the FedAvg constructor.
     """
     
-    def __init__(self, top_k: int = 1,**kwargs):
+    def __init__(self, top_k: int = 2,**kwargs):
         super().__init__( **kwargs)
         self.top_k = top_k
         self.contribution_metrics = {}
+
+    
 
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
@@ -54,19 +59,19 @@ class ContributionFedAvg(FedAvg):
         # Only sort and filter clients if contribution_metrics is not empty
         # Useful for the first round when the server does not have contribution metrics
         if self.contribution_metrics:
-            # Sort clients based on contribution scores
-            sorted_client_fit_ins = sorted(
-                [cfi for cfi in client_fit_ins if cfi[0].cid in self.contribution_metrics],
-                key=lambda cfi: self.contribution_metrics[cfi[0].cid],
-                reverse=True
-            )
-
-            # Select only the top_k clients
-            filtered_client_fit_ins = sorted_client_fit_ins[:self.top_k]
+            
+            filtered_client_fit_ins = []
+            for cfi in client_fit_ins:
+                if cfi[0].cid in keep_top_k(self.contribution_metrics, self.top_k):
+                    filtered_client_fit_ins.append(cfi)
+            #log(INFO, f"filtered_client_fit_ins: {len(filtered_client_fit_ins)}")
+            
+            
         else:
             # If contribution_metrics is empty, use the original client selection
             filtered_client_fit_ins = client_fit_ins
 
+        
         return filtered_client_fit_ins
     
     def aggregate_evaluate(
@@ -106,3 +111,6 @@ class ContributionFedAvg(FedAvg):
         #     log(WARNING, "No evaluate_metrics_aggregation_fn provided")
         metrics_aggregated = {}
         return loss_aggregated, metrics_aggregated
+    
+
+

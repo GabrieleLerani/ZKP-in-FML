@@ -18,7 +18,7 @@ class FlowerClient(NumPyClient):
 
     def __init__(
         self, 
-        cid: int,
+        node_id: int,
         trainloader: DataLoader,
         valloader: DataLoader,
         testloader: DataLoader,
@@ -28,7 +28,7 @@ class FlowerClient(NumPyClient):
     ) -> None:
         super().__init__()
 
-        self.cid = cid
+        self.node_id = node_id
         self.dataset_score = client_dataset_score
         # the dataloaders that point to the data associated to this client
         self.trainloader = trainloader
@@ -77,7 +77,7 @@ class FlowerClient(NumPyClient):
             self.accuracy_metric
         )
         
-        log(INFO, f"Round: {config['server_round']}, Client {self.cid} is doing fit()")
+        log(INFO, f"Round: {config['server_round']}, Client {self.node_id} is doing fit()")
         return self.get_parameters({}), len(self.trainloader), {}
 
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]):
@@ -92,12 +92,12 @@ class FlowerClient(NumPyClient):
             self.accuracy_metric
         )
 
-        log(INFO, f"Round: {config['server_round']}, Client {self.cid} is doing evaluate() with loss: {loss} and accuracy: {accuracy}")
+        log(INFO, f"Round: {config['server_round']}, Client {self.node_id} is doing evaluate() with loss: {loss} and accuracy: {accuracy}")
 
         contribution = compute_contribution(loss, self.dataset_score, self.trainer_config['gamma'])
 
         # send client contriubtion to the server the key is the client id
-        return float(loss), len(self.valloader), {f"{self.cid}": float(contribution)}
+        return float(loss), len(self.valloader), {f"{self.node_id}": float(contribution)}
 
 
 
@@ -117,10 +117,14 @@ def generate_client_fn(
 
     def client_fn(context: Context) -> Client:
         
+        # usally a random number instantiated by the server
+        node_id = context.node_id
+
+        # number from 0 up to num clients, corresponds to dataset partitions
         cid = context.node_config["partition-id"]
 
         return FlowerClient(
-            cid=cid,
+            node_id=node_id,
             trainloader=trainloaders[int(cid)],
             valloader=valloaders[int(cid)],
             testloader=testloaders[int(cid)],
