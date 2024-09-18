@@ -2,15 +2,16 @@ from collections import OrderedDict
 from typing import Dict
 from torch.utils.data import DataLoader
 import torch
-import flwr as fl
+
 from flwr.client import NumPyClient
 from flwr.common import Context
 from flwr.common import NDArrays, Scalar
 from flwr.client import Client
-from model import Net
-import pytorch_lightning as pl
+from model import Net, train, test
 from logging import INFO, DEBUG
 from flwr.common.logger import log
+from torchmetrics import Accuracy
+from utils.score import compute_contribution
 
 class FlowerClient(NumPyClient):
     """Define a Flower Client."""
@@ -28,6 +29,7 @@ class FlowerClient(NumPyClient):
         super().__init__()
 
         self.cid = cid
+        self.dataset_score = client_dataset_score
         # the dataloaders that point to the data associated to this client
         self.trainloader = trainloader
         self.valloader = valloader
@@ -35,12 +37,12 @@ class FlowerClient(NumPyClient):
 
         # a model that is randomly initialised at first
         self.model = Net(num_classes, trainer_config)
-        
+        self.trainer_config = trainer_config
 
-        # pytorch lightning trainer to train the model and avoid boilerplate code
-        self.trainer = pl.Trainer(max_epochs=trainer_config['num_epochs'], enable_progress_bar=False)
-        
-        
+        # client training optimizer and criterion
+        self.criterion = torch.nn.CrossEntropyLoss()
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.trainer_config['lr'])
+        self.accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(self.trainer_config['device'])
 
     def set_parameters(self, parameters):
         """Receive parameters and apply them to the local model."""
@@ -64,27 +66,38 @@ class FlowerClient(NumPyClient):
         # copy parameters sent by the server into client's local model
         self.set_parameters(parameters)
 
+        # train the model
+        train(
+            self.model, 
+            self.trainloader, 
+            self.trainer_config['num_epochs'], 
+            self.trainer_config['device'], 
+            self.optimizer,
+            self.criterion,
+            self.accuracy_metric
+        )
         
-
-        self.trainer.fit(self.model, self.trainloader, self.valloader)
-
-        
+        log(INFO, f"Round: {config['server_round']}, Client {self.cid} is doing fit()")
         return self.get_parameters({}), len(self.trainloader), {}
 
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]):
         """Evaluate the model on the data this client has."""
         self.set_parameters(parameters)
 
-        # loss returns a dictionary with the loss value and other metrics
-        # logged during the test step of the pl trainer in _shared_eval_step 
-        # of model.py
-        metrics = self.trainer.test(self.model, self.testloader)
-
-        loss = metrics[0]["test_loss"]
         
-        log(INFO, f"Client {self.cid} is doing evaluate() with loss: {loss}")
-        return float(loss), len(self.valloader), {}
+        loss, accuracy = test(
+            self.model,
+            self.testloader,
+            self.trainer_config['device'],
+            self.accuracy_metric
+        )
 
+        log(INFO, f"Round: {config['server_round']}, Client {self.cid} is doing evaluate() with loss: {loss} and accuracy: {accuracy}")
+
+        contribution = compute_contribution(loss, self.dataset_score, self.trainer_config['gamma'])
+
+        # send client contriubtion to the server the key is the client id
+        return float(loss), len(self.valloader), {f"{self.cid}": float(contribution)}
 
 
 
@@ -111,7 +124,7 @@ def generate_client_fn(
             trainloader=trainloaders[int(cid)],
             valloader=valloaders[int(cid)],
             testloader=testloaders[int(cid)],
-            client_dataset_score=scores,
+            client_dataset_score=scores[int(cid)],
             num_classes=num_classes,
             trainer_config=trainer_config
         ).to_client()

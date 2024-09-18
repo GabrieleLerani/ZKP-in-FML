@@ -6,7 +6,7 @@ from flwr_datasets.visualization import plot_label_distributions
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
-from utils import entropy_score
+from utils.score import entropy_score
 from matplotlib import pyplot as plt
 import os
 
@@ -14,6 +14,7 @@ class DatasetLoader:
     def __init__(
             self, 
             num_partitions, 
+            num_classes_per_partition=3,
             dist="linear", 
             plot_label_distribution=True, 
             alpha=1, 
@@ -21,6 +22,7 @@ class DatasetLoader:
             plots_folder="plots"
         ):
         self.num_partitions = num_partitions
+        self.num_classes_per_partition = num_classes_per_partition
         self.distribution = dist
         self.plot_label_distribution = plot_label_distribution
         self.alpha = alpha
@@ -50,7 +52,7 @@ class DatasetLoader:
             elif self.distribution == "dirichlet":
                 partitioner = DirichletPartitioner(num_partitions=self.num_partitions, alpha=self.alpha, partition_by="label")
             elif self.distribution == "pathological":
-                partitioner = PathologicalPartitioner(num_partitions=self.num_partitions, partition_by="label", num_classes_per_partition=2, class_assignment_mode="deterministic")
+                partitioner = PathologicalPartitioner(num_partitions=self.num_partitions, partition_by="label", num_classes_per_partition=self.num_classes_per_partition, class_assignment_mode="deterministic")
             elif self.distribution == "square":
                 partitioner = SquarePartitioner(num_partitions=self.num_partitions)
             elif self.distribution == "iid":
@@ -64,8 +66,7 @@ class DatasetLoader:
             )
 
             # Determine the number of classes
-            sample_partition = self.fds.load_partition(0, "train")
-            self.num_classes = len(sample_partition.select_columns(['label']).to_pandas()['label'].unique())
+            self._set_num_classes()
 
             if self.plot_label_distribution:
                 partitioner = self.fds.partitioners["train"]
@@ -76,6 +77,14 @@ class DatasetLoader:
                     os.makedirs(label_dist_path)
                 plt.savefig(f"{label_dist_path}/{self.distribution}.png")
                 
+    def _set_num_classes(self):
+
+        sample_partition = self.fds.load_split("train")
+        self.num_classes = len(sample_partition.select_columns(['label']).to_pandas()['label'].unique())
+        
+        # not pathological distributions have as many classes per partition as the total number of classes
+        # pathological distributions is more suitable to represent real world data
+        
 
     def compute_partition_score(self) -> dict[int, float]:
         """
@@ -128,10 +137,12 @@ class DatasetLoader:
         val_loaders = []
         test_loader = []
 
-        centralized_test_loader = self.fds.load_split("test").with_transform(self._apply_transforms)
+        centralized_test_dataset = self.fds.load_split("test").with_transform(self._apply_transforms)
+        
+        
 
         self.centralized_test_loader = DataLoader(
-            centralized_test_loader,
+            centralized_test_dataset,
             batch_size=self.batch_size,
             num_workers=7
         )

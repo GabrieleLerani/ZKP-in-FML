@@ -2,11 +2,14 @@ import hydra
 from omegaconf import OmegaConf
 from dataset import DatasetLoader
 from client import generate_client_fn
-import flwr as fl
 from server import generate_server_fn
 from flwr.server import ServerApp
 from flwr.client import ClientApp
 from flwr.simulation import run_simulation
+import flwr as fl
+from logging import INFO, DEBUG
+from flwr.common.logger import log
+
 
 @hydra.main(config_path="config", config_name="base.yaml", version_base=None)
 def main(
@@ -19,6 +22,7 @@ def main(
     # 1. Get data loaders for each client
     dataset_loader = DatasetLoader(
         cfg.num_clients,
+        cfg.dataset.num_classes_per_partition,
         cfg.dataset.distribution,
         cfg.dataset.plot_label_distribution,
         cfg.dataset.alpha,
@@ -29,6 +33,7 @@ def main(
 
     # 2. compute scores of dataset for each client
     scores = dataset_loader.compute_partition_score()    
+    log(INFO, f"scores: {scores}")
 
     client_fn = generate_client_fn(
         train_loaders,
@@ -52,6 +57,7 @@ def main(
     # 4. generate server function
     server_app = ServerApp(server_fn=server_fn)
 
+    # TODO change to start_simulation so you can collect history and plot metrics
 
     # 5. run simulation
     run_simulation(
