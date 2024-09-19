@@ -1,9 +1,9 @@
 
 
-from flwr.common import Context
+from flwr.server.strategy import Strategy
 from flwr.server.strategy import FedAvg
-from flwr.server import ServerConfig, ServerAppComponents
-from strategy import ContributionFedAvg
+from flwr.server import ServerConfig
+from strategy import ContFedAvg
 from typing import Dict
 import torch
 from collections import OrderedDict
@@ -70,15 +70,16 @@ def get_evaluate_fn(
         testloader: DataLoader, 
         trainer_config: Dict[str, any]
     ):
-    """Define function for global evaluation on the server."""
+    """Define function for global evaluation on the server. Test loader is the full MNIST test set.
+    """
 
     def evaluate_fn(server_round: int, parameters, config) -> Optional[Tuple[float, Dict[str, Scalar]]]:
         # this function takes these parameters and evaluates the global model
         # on the server on a pre defined test dataset.
-
+        
         
         # evaluate global model only at the last round
-        if server_round == total_rounds:
+        if server_round % 10 == 0: #== total_rounds:
             
             model = Net(num_classes, trainer_config)
 
@@ -96,28 +97,40 @@ def get_evaluate_fn(
     return evaluate_fn
 
 
-def generate_server_fn(
+def get_strategy(
         cfg: Dict[str, any],
         num_classes: int,
-        testloader: DataLoader,
-        trainer_config: Dict[str, any]
-    ) -> ServerAppComponents:
+        testloader: DataLoader
+    ) -> Strategy:
 
-    def server_fn(context: Context) -> ServerAppComponents:
-        # Create the FedAvg strategy
-        strategy = ContributionFedAvg(
+    # TODO improve code quality and readability
+    assert cfg.strategy in ['FedAvg', 'ContFedAvg'], "Strategy must be either FedAvg or ContFedAvg"
+
+    if cfg.strategy == 'FedAvg':
+        return FedAvg(
             fraction_fit=cfg.fraction_fit,
             fraction_evaluate=cfg.fraction_evaluate,
             min_fit_clients=cfg.num_clients_per_round_fit,
             min_evaluate_clients=cfg.num_clients_per_round_eval,
             min_available_clients=cfg.num_clients,
-            evaluate_fn=get_evaluate_fn(num_classes, cfg.num_rounds, testloader, trainer_config),
+            evaluate_fn=get_evaluate_fn(num_classes, cfg.num_rounds, testloader, cfg['trainer']),
             on_fit_config_fn=get_on_fit_config(cfg),
             on_evaluate_config_fn=get_on_evaluate_config(cfg),
             evaluate_metrics_aggregation_fn=get_evaluate_metrics_aggregation(cfg)
         )
-        # Configure the server for 3 rounds of training
-        config = ServerConfig(num_rounds=cfg.num_rounds)
-        return ServerAppComponents(strategy=strategy, config=config)
+    elif cfg.strategy == 'ContFedAvg':
 
-    return server_fn
+        return ContFedAvg(
+            fraction_fit=cfg.fraction_fit,
+            fraction_evaluate=cfg.fraction_evaluate,
+            min_fit_clients=cfg.num_clients_per_round_fit,
+            min_evaluate_clients=cfg.num_clients_per_round_eval,
+            min_available_clients=cfg.num_clients,
+            evaluate_fn=get_evaluate_fn(num_classes, cfg.num_rounds, testloader, cfg['trainer']),
+            on_fit_config_fn=get_on_fit_config(cfg),
+            on_evaluate_config_fn=get_on_evaluate_config(cfg),
+            evaluate_metrics_aggregation_fn=get_evaluate_metrics_aggregation(cfg)
+        )
+
+def get_server_config(cfg: Dict[str, any]) -> ServerConfig:
+    return ServerConfig(num_rounds=cfg.num_rounds)

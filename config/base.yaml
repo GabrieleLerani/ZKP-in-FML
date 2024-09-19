@@ -1,9 +1,12 @@
-num_rounds: 10
+num_rounds: 25
 num_clients: 5
 fraction_fit: 1.0
 fraction_evaluate: 1.0
 num_clients_per_round_fit: 1
 num_clients_per_round_eval: 1
+
+save_path: "plots/results"
+strategy: ContFedAvg
 
 
 dataset:
@@ -11,14 +14,14 @@ dataset:
   plot_label_distribution: False
   num_classes_per_partition: 5 # used only for pathological distribution
   alpha: 0.5
-  batch_size: 64
+  batch_size: 10
 
 
 trainer:
   gamma: 0.2
   device: cpu
-  num_epochs: 1
-  lr: 0.01
+  num_epochs: 2
+  lr: 0.1
 
 # Comment the two sections below to make hydra generate the files again
 # defaults:  

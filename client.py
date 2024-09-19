@@ -3,22 +3,22 @@ from typing import Dict
 from torch.utils.data import DataLoader
 import torch
 
-from flwr.client import NumPyClient
+from flwr.client import NumPyClient, Client
 from flwr.common import Context
 from flwr.common import NDArrays, Scalar
-from flwr.client import Client
 from model import Net, train, test
 from logging import INFO, DEBUG
 from flwr.common.logger import log
 from torchmetrics import Accuracy
 from utils.score import compute_contribution
 
+
 class FlowerClient(NumPyClient):
     """Define a Flower Client."""
 
     def __init__(
         self, 
-        node_id: int,
+        node_id: str,
         trainloader: DataLoader,
         valloader: DataLoader,
         testloader: DataLoader,
@@ -41,7 +41,7 @@ class FlowerClient(NumPyClient):
 
         # client training optimizer and criterion
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.trainer_config['lr'])
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.trainer_config['lr'])
         self.accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(self.trainer_config['device'])
 
     def set_parameters(self, parameters):
@@ -77,7 +77,7 @@ class FlowerClient(NumPyClient):
             self.accuracy_metric
         )
         
-        log(INFO, f"Round: {config['server_round']}, Client {self.node_id} is doing fit()")
+        
         return self.get_parameters({}), len(self.trainloader), {}
 
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]):
@@ -92,7 +92,7 @@ class FlowerClient(NumPyClient):
             self.accuracy_metric
         )
 
-        log(INFO, f"Round: {config['server_round']}, Client {self.node_id} is doing evaluate() with loss: {loss} and accuracy: {accuracy}")
+        log(INFO, f"Round: {config['server_round']}, Client {self.node_id[:3]} is doing evaluate() with loss: {loss:.4f} and accuracy: {accuracy:.4f}")
 
         contribution = compute_contribution(loss, self.dataset_score, self.trainer_config['gamma'])
 
@@ -124,7 +124,7 @@ def generate_client_fn(
         cid = context.node_config["partition-id"]
 
         return FlowerClient(
-            node_id=node_id,
+            node_id=str(node_id),
             trainloader=trainloaders[int(cid)],
             valloader=valloaders[int(cid)],
             testloader=testloaders[int(cid)],

@@ -20,11 +20,11 @@ class Net(nn.Module):
         
 
         # define layers
-        self.conv1 = nn.Conv2d(1, 16, 5, padding=1)
-        self.conv2 = nn.Conv2d(16, 32, 5, padding=1)
+        self.conv1 = nn.Conv2d(1, 32, 5, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, 5, padding=1)
         self.pool = nn.MaxPool2d(kernel_size=(2, 2), padding=1)
-        self.fc1 = nn.Linear(32 * 7 * 7, 128)
-        self.fc2 = nn.Linear(128, num_classes)
+        self.fc1 = nn.Linear(64 * 7 * 7, 128)
+        self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the CNN.
@@ -64,7 +64,7 @@ def train(
     net.train()
     
     
-    for epoch in range(epochs):
+    for _ in range(epochs):
         epoch_loss = 0.0
         accuracy_metric.reset()
         

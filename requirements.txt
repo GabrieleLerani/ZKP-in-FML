@@ -5,6 +5,6 @@ pytorch-lightning
 hydra-core
 flwr
 flwr[simulation]
-matplotlib
-fedartml
 flwr-datasets[vision]
+matplotlib
+

@@ -54,7 +54,7 @@ def compute_contribution(loss: float, dataset_score: float, gamma: float = 0.5) 
 
 
 
-def plot_contribution_2d(L_range, d_fixed, gammas):
+def plot_contribution_function(L_range, d_fixed, gammas):
     plt.figure(figsize=(10, 6))
 
     for gamma in gammas:
@@ -83,4 +83,4 @@ def plot_contribution_2d(L_range, d_fixed, gammas):
 # gammas = [0.1 ,0.5, 0.9]
 
 # # Plotting
-# plot_contribution_2d(L_values, d_fixed, gammas)
+# plot_contribution_function(L_values, d_fixed, gammas)

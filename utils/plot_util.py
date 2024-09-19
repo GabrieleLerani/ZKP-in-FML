@@ -1,8 +1,101 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from pathlib import Path
+from flwr.server.history import History
+from typing import Optional
 
-DISTRIBUTIONS = ['linear', 'exponential', 'dirichlet', 'square', 'pathological', 'iid']
+
+def plot_comparison_from_files(save_plot_path: Path, num_clients: int, num_rounds: int, dataset_distribution: str):
+    """
+    Read numpy files for FedAvg and ContFedAvg strategies and plot their accuracy and loss.
+
+    Parameters
+    ----------
+    save_plot_path : Path
+        Folder to save the plot to.
+    num_clients : int
+        Number of clients used in the simulation.
+    num_rounds : int
+        Number of rounds in the simulation.
+    dataset_distribution : str
+        Distribution of the dataset used.
+    """
+    strategies = ['FedAvg', 'ContFedAvg']
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
+
+    for strategy in strategies:
+        file_suffix = f"_S={strategy}_C={num_clients}_R={num_rounds}_D={dataset_distribution}"
+        file_path = Path(save_plot_path) / f"history{file_suffix}.npy"
+        
+        history = np.load(file_path, allow_pickle=True).item()
+
+        # Plot accuracy
+        rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
+        ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=f"{strategy} - Accuracy")
+
+        # Plot loss
+        rounds_loss, values_loss = zip(*history.losses_distributed)
+        ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=f"{strategy} - Loss")
+
+    ax1.set_title("Centralized Validation Accuracy - MNIST")
+    ax1.set_xlabel("Rounds")
+    ax1.set_ylabel("Accuracy")
+    ax1.legend(loc="lower right")
+    ax1.set_ylim([0.2, 1])
+
+    ax2.set_title("Distributed Training Loss - MNIST")
+    ax2.set_xlabel("Rounds")
+    ax2.set_ylabel("Loss")
+    ax2.legend(loc="upper right")
+
+    plt.tight_layout()
+    plt.savefig(Path(save_plot_path) / Path(f"strategy_comparison_C{num_clients}_R{num_rounds}_D{dataset_distribution}.png"))
+    plt.close()
+
+def plot_metric_from_history(
+    hist: History,
+    save_plot_path: Path,
+    strategy: str,
+    suffix: Optional[str] = "",
+) -> None:
+    """Function to plot from Flower server History.
+
+    Parameters
+    ----------
+    hist : History
+        Object containing evaluation for all rounds.
+    save_plot_path : Path
+        Folder to save the plot to.
+    strategy : str
+        Name of the strategy used.
+    suffix: Optional[str]
+        Optional string to add at the end of the filename for the plot.
+    metric: str
+        Metric to plot. Can be "accuracy" or "loss".
+    """
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
+    
+    # Plot centralized accuracy
+    rounds_acc, values_acc = zip(*hist.metrics_centralized["accuracy"])
+    ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=f"{strategy}")
+    ax1.set_ylim([0.2, 1])
+    ax1.set_title("Centralized Validation Accuracy - MNIST")
+    ax1.set_xlabel("Rounds")
+    ax1.set_ylabel("Accuracy")
+    ax1.legend(loc="lower right")
+
+    # Plot distributed loss
+    rounds_loss, values_loss = zip(*hist.losses_distributed)
+    ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=f"{strategy}", color='red')
+    ax2.set_title("Distributed Training Loss - MNIST")
+    ax2.set_xlabel("Rounds")
+    ax2.set_ylabel("Loss")
+    ax2.legend(loc="upper right")
+
+    plt.tight_layout()
+    plt.savefig(Path(save_plot_path) / Path(f"combined_metrics{suffix}.png"))
+    plt.close()
 
 def read_scores(plots_folder='plots/scores'):
     scores = {}
@@ -11,41 +104,5 @@ def read_scores(plots_folder='plots/scores'):
             distribution_type = file_name.replace('.npy', '')
             scores[distribution_type] = np.load(os.path.join(plots_folder, file_name), allow_pickle=True).item()
     return scores
-
-def plot_scores(scores):
-    fig, axes = plt.subplots(len(scores), 2, figsize=(15, 5*len(scores)))
-    if len(scores) == 1:
-        axes = [axes]
-    
-    fig.suptitle('Scores and Label Distributions for Different Partitioning Strategies', y=1.02)
-
-    for distribution in DISTRIBUTIONS:
-        if distribution in scores:
-            i = DISTRIBUTIONS.index(distribution)
-            score_dict = scores[distribution]
-            client_ids = list(score_dict.keys())
-            score_values = list(score_dict.values())
-
-            # Plot scores
-            axes[i][0].bar(client_ids, score_values)
-            axes[i][0].set_xlabel('Client ID', labelpad=10)
-            axes[i][0].set_ylabel('Score')
-            axes[i][0].set_title(f'{distribution} - Scores', pad=20)
-
-            # Plot label distribution
-            label_dist_path = os.path.join('plots', 'label_dist', f'{distribution}.png')
-            if os.path.exists(label_dist_path):
-                img = plt.imread(label_dist_path)
-                axes[i][1].imshow(img)
-                axes[i][1].axis('off')
-                axes[i][1].set_title(f'{distribution} - Label Distribution', pad=20)
-            else:
-                axes[i][1].text(0.5, 0.5, 'Label distribution image not found', 
-                                ha='center', va='center')
-                axes[i][1].axis('off')
-
-    fig.tight_layout()
-    plt.subplots_adjust(hspace=0.5)
-    plt.show()
 
 
