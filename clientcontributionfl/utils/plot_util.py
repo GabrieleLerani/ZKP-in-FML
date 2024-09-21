@@ -8,7 +8,6 @@ from flwr.common.config import get_project_config
 
 def load_history(file_path: str):
     loaded_array = np.load(file_path, allow_pickle=True).item()
-    print(loaded_array, type(loaded_array))
     return loaded_array
 
 

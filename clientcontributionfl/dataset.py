@@ -38,7 +38,7 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
         log(INFO,"Initializing FederatedDataset")
         partitioner = get_partitioner(config, num_partitions)
         fds = FederatedDataset(
-            dataset="ylecun/mnist",
+            dataset=config["dataset_name"],
             partitioners={"train": partitioner},
         )
         if config["plot_label_distribution"]:
@@ -47,7 +47,7 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
             label_dist_path = os.path.join(config["save_path"], "label_dist")
             if not os.path.exists(label_dist_path):
                 os.makedirs(label_dist_path)
-            plt.savefig(f"{label_dist_path}/{config['distribution']}_P={partition_id}.png")
+            plt.savefig(f"{label_dist_path}/{config['distribution']}_P={num_partitions}.png")
 
     partition = fds.load_partition(partition_id, "train")
 

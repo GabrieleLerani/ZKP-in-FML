@@ -42,7 +42,7 @@ dataset_name = "ylecun/mnist"
 distribution = "dirichlet"
 plot_label_distribution = true
 num_classes_per_partition = 5
-alpha = 0.5
+alpha = 0.05
 batch_size = 10
 
 # secaggplus config
