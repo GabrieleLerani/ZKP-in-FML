@@ -13,7 +13,7 @@ from .utils.score import entropy_score
 
 import os
 from typing import Dict
-
+import matplotlib.pyplot as plt
 
 TRAIN_TRANSFORMS = transforms.Compose([
     transforms.ToTensor(),
@@ -36,11 +36,19 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
     global fds
     if fds is None:
         log(INFO,"Initializing FederatedDataset")
+        partitioner = get_partitioner(config, num_partitions)
         fds = FederatedDataset(
             dataset="ylecun/mnist",
-            partitioners={"train": get_partitioner(config, num_partitions)},
+            partitioners={"train": partitioner},
         )
-        
+        if config["plot_label_distribution"]:
+            partitioner = fds.partitioners["train"]
+            plot_label_distributions(partitioner, label_name=f"label", verbose_labels=True)
+            label_dist_path = os.path.join(config["save_path"], "label_dist")
+            if not os.path.exists(label_dist_path):
+                os.makedirs(label_dist_path)
+            plt.savefig(f"{label_dist_path}/{config['distribution']}_P={partition_id}.png")
+
     partition = fds.load_partition(partition_id, "train")
 
     partition = partition.with_transform(apply_transforms)

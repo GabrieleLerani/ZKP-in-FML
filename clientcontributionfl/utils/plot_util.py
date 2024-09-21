@@ -4,9 +4,15 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from flwr.server.history import History
 from typing import Optional
+from flwr.common.config import get_project_config
+
+def load_history(file_path: str):
+    loaded_array = np.load(file_path, allow_pickle=True).item()
+    print(loaded_array, type(loaded_array))
+    return loaded_array
 
 
-def plot_comparison_from_files(save_plot_path: Path, num_clients: int, num_rounds: int, dataset_distribution: str):
+def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool):
     """
     Read numpy files for FedAvg and ContFedAvg strategies and plot their accuracy and loss.
 
@@ -14,8 +20,6 @@ def plot_comparison_from_files(save_plot_path: Path, num_clients: int, num_round
     ----------
     save_plot_path : Path
         Folder to save the plot to.
-    num_clients : int
-        Number of clients used in the simulation.
     num_rounds : int
         Number of rounds in the simulation.
     dataset_distribution : str
@@ -25,7 +29,7 @@ def plot_comparison_from_files(save_plot_path: Path, num_clients: int, num_round
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
 
     for strategy in strategies:
-        file_suffix = f"_S={strategy}_C={num_clients}_R={num_rounds}_D={dataset_distribution}"
+        file_suffix = f"_S={strategy}_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}"
         file_path = Path(save_plot_path) / f"history{file_suffix}.npy"
         
         history = np.load(file_path, allow_pickle=True).item()
@@ -50,7 +54,7 @@ def plot_comparison_from_files(save_plot_path: Path, num_clients: int, num_round
     ax2.legend(loc="upper right")
 
     plt.tight_layout()
-    plt.savefig(Path(save_plot_path) / Path(f"strategy_comparison_C{num_clients}_R{num_rounds}_D{dataset_distribution}.png"))
+    plt.savefig(Path(save_plot_path) / Path(f"strategy_comparison_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}.png"))
     plt.close()
 
 def plot_metric_from_history(
@@ -97,6 +101,7 @@ def plot_metric_from_history(
     plt.savefig(Path(save_plot_path) / Path(f"combined_metrics{suffix}.png"))
     plt.close()
 
+# TODO check if this should be removed
 def read_scores(plots_folder='plots/scores'):
     scores = {}
     for file_name in os.listdir(plots_folder):
@@ -106,3 +111,29 @@ def read_scores(plots_folder='plots/scores'):
     return scores
 
 
+
+if __name__ == "__main__":
+    config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
+    file_suffix = (
+        f"_S={config['strategy']}"
+        f"_R={config['num_rounds']}"
+        f"_D={config['distribution']}"
+        f"_SecAgg={'On' if config['secaggplus'] else 'Off'}"
+    )
+
+    save_path = str(Path("clientcontributionfl/plots/results"))
+    # load_path = str(Path("clientcontributionfl/plots/results") / Path(f"history{file_suffix}.npy"))
+    # loaded_history = load_history(load_path)
+    # plot_metric_from_history(
+    #     loaded_history,
+    #     save_path,
+    #     config['strategy'],
+    #     file_suffix,
+    # )
+
+    plot_comparison_from_files(
+        save_path,
+        config['num_rounds'],
+        config['distribution'],
+        config['secaggplus']
+    )

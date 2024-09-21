@@ -139,8 +139,10 @@ def client_fn(context: Context) -> Client:
 # Load configuration
 config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
 
+secaggplus = config.get("secaggplus", True)
+
 # Flower ClientApp
 app = ClientApp(
     client_fn=client_fn,
-    mods=[secaggplus_mod] if config['use_secaggplus'] else None,
+    mods=[secaggplus_mod] if secaggplus else None,
 )
