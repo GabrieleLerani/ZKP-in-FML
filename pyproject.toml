@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clientcontributionfl"
+version = "1.0.0"
+description = "A Flower-based Federated Learning project using FedAvg and SecAgg+ protocol"
+authors = [
+    {name = "Gabriele Lerani", email = "gabriele.lerani2000@gmail.com"},
+]
+dependencies = [
+    "flwr[simulation]>=1.11.0",
+    "flwr-datasets[vision]>=0.3.0",
+    "torch==2.4.1",
+    "torchvision==0.19.1",
+    "matplotlib==3.9.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.flwr.app]
+publisher = "gabriele"
+
+[tool.flwr.app.components]
+serverapp = "clientcontributionfl.server_app:app"
+clientapp = "clientcontributionfl.client_app:app"
+
+[tool.flwr.app.config]
+num_rounds = 1
+fraction_fit = 1.0
+fraction_evaluate = 1.0
+num_clients_per_round_fit = 1
+num_clients_per_round_eval = 1
+save_path = "clientcontributionfl/plots/results"
+strategy = "ContFedAvg"
+
+# dataset config
+dataset_name = "ylecun/mnist"
+distribution = "dirichlet"
+plot_label_distribution = false
+num_classes_per_partition = 5
+alpha = 0.5
+batch_size = 10
+
+# secaggplus config
+use_secaggplus = true # if true, use SecAgg+ protocol, otherwise use FedAvg
+num_shares = 3
+reconstruction_threshold = 2
+max_weight = 9000
+
+# train config
+gamma = 0.2
+device = "cpu"
+num_epochs = 2
+lr = 0.1
+
+[tool.flwr.federations]
+default = "local-simulation"
+
+[tool.flwr.federations.local-simulation]
+options.num-supernodes = 5
+options.backend.client-resources.num-cpus = 2 # each ClientApp assumes to use 2CPUs
+options.backend.client-resources.num-gpus = 0.0 # ratio of VRAM a ClientApp has access to

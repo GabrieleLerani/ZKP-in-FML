@@ -7,8 +7,8 @@ env/
 # Hydra
 outputs/
 
-# Pytorch Lightning
-lightning_logs/
+# clientcontributionfolder
+clientcontributionfl/plots/scores/
 
 # Python byte-compiled files
 __pycache__/

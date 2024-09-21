@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import pytorch_lightning as pl
+
 
 from typing import Dict
 from torch.utils.data import DataLoader
@@ -12,12 +12,9 @@ from logging import INFO, DEBUG
 class Net(nn.Module):
     """A simple CNN suitable for simple vision tasks."""
 
-    def __init__(self, num_classes: int, trainer_config: Dict[str, any]) -> None:
+    def __init__(self, num_classes: int) -> None:
         super(Net, self).__init__()
 
-        # TODO parametrize network informations (in_channels, out_channels, kernel_size, etc.)
-        self.trainer_config = trainer_config
-        
 
         # define layers
         self.conv1 = nn.Conv2d(1, 32, 5, padding=1)
@@ -49,7 +46,7 @@ class Net(nn.Module):
         return x
 
 
-# Maybe move this into Model so to avoid passing parameters
+# TODO Maybe move this into Model so to avoid passing parameters
 def train(
         net: nn.Module, 
         trainloader: DataLoader, 
@@ -62,7 +59,7 @@ def train(
     """Train the network on the training set."""
     
     net.train()
-    
+    net.to(device)
     
     for _ in range(epochs):
         epoch_loss = 0.0
@@ -95,6 +92,7 @@ def test(net: nn.Module, testloader: DataLoader, device: str, accuracy_metric: A
     
     
     net.eval()
+    net.to(device)
     test_loss = 0.0
     accuracy_metric.reset()
     

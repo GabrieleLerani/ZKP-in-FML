@@ -3,15 +3,20 @@ from typing import Dict
 from torch.utils.data import DataLoader
 import torch
 
-from flwr.client import NumPyClient, Client
+from flwr.client import NumPyClient, Client, ClientApp
+from flwr.client.mod import secaggplus_mod
 from flwr.common import Context
 from flwr.common import NDArrays, Scalar
-from model import Net, train, test
+
 from logging import INFO, DEBUG
 from flwr.common.logger import log
+from flwr.common.config import get_project_config
 from torchmetrics import Accuracy
-from utils.score import compute_contribution
 
+# relative imports
+from .model import Net, train, test
+from .utils.score import compute_contribution
+from .dataset import load_data, compute_partition_score
 
 class FlowerClient(NumPyClient):
     """Define a Flower Client."""
@@ -20,9 +25,8 @@ class FlowerClient(NumPyClient):
         self, 
         node_id: str,
         trainloader: DataLoader,
-        valloader: DataLoader,
         testloader: DataLoader,
-        client_dataset_score: float, # TODO use the score to decide the weight of the client
+        client_dataset_score: float, 
         num_classes: int,
         trainer_config: Dict[str, Scalar]
     ) -> None:
@@ -32,11 +36,10 @@ class FlowerClient(NumPyClient):
         self.dataset_score = client_dataset_score
         # the dataloaders that point to the data associated to this client
         self.trainloader = trainloader
-        self.valloader = valloader
         self.testloader = testloader
 
         # a model that is randomly initialised at first
-        self.model = Net(num_classes, trainer_config)
+        self.model = Net(num_classes)
         self.trainer_config = trainer_config
 
         # client training optimizer and criterion
@@ -97,41 +100,47 @@ class FlowerClient(NumPyClient):
         contribution = compute_contribution(loss, self.dataset_score, self.trainer_config['gamma'])
 
         # send client contriubtion to the server the key is the client id
-        return float(loss), len(self.valloader), {f"{self.node_id}": float(contribution)}
+        return float(loss), len(self.testloader), {f"{self.node_id}": float(contribution)}
 
 
 
 
-def generate_client_fn(
-        trainloaders: list[DataLoader], 
-        valloaders: list[DataLoader], 
-        testloaders: list[DataLoader], 
-        scores: dict, 
-        num_classes: int, 
-        trainer_config: Dict[str, Scalar]
-    ):
-    """
-    Return a function that can be used by the VirtualClientEngine 
-    to spawn a FlowerClient with client id `cid`.
-    """
-
-    def client_fn(context: Context) -> Client:
+def client_fn(context: Context) -> Client:
         
-        # usally a random number instantiated by the server
-        node_id = context.node_id
+    # usally a random number instantiated by the server
+    node_id = context.node_id
 
-        # number from 0 up to num clients, corresponds to dataset partitions
-        cid = context.node_config["partition-id"]
+    # number from 0 up to num clients, corresponds to dataset partitions
+    partition_id = context.node_config["partition-id"]
+    num_partitions = context.node_config["num-partitions"]
 
-        return FlowerClient(
-            node_id=str(node_id),
-            trainloader=trainloaders[int(cid)],
-            valloader=valloaders[int(cid)],
-            testloader=testloaders[int(cid)],
-            client_dataset_score=scores[int(cid)],
-            num_classes=num_classes,
-            trainer_config=trainer_config
-        ).to_client()
 
-    # return the function to spawn client
-    return client_fn
+    train_loader, test_loader, num_classes = load_data(context.run_config, partition_id, num_partitions)
+
+    score = compute_partition_score(
+        num_partitions=num_partitions, 
+        num_classes=num_classes, 
+        distribution=context.run_config["distribution"], 
+        save_path=context.run_config["save_path"]
+    )[int(partition_id)]
+
+    return FlowerClient(
+        node_id=str(node_id),
+        trainloader=train_loader,
+        testloader=test_loader,
+        client_dataset_score=score,
+        num_classes=num_classes,
+        trainer_config=context.run_config
+    ).to_client()
+
+    
+
+
+# Load configuration
+config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
+
+# Flower ClientApp
+app = ClientApp(
+    client_fn=client_fn,
+    mods=[secaggplus_mod] if config['use_secaggplus'] else None,
+)
