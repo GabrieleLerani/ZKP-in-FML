@@ -18,6 +18,16 @@ This project, named "clientcontributionfl", is a Federated Learning implementati
 - Secure Aggregation using SecAgg+ protocol
 - Zero knowledge proofs
 
+## Project Structure
+
+- `clientcontributionfl/`: Main package directory
+  - `server_app.py`: Server-side logic
+  - `client_app.py`: Client-side logic
+  - `dataset.py`:    Dataset loading and partitioning
+  - `model.py`:      pytorch model
+  - `strategy.py`:   Custom strategy that extends FedAvg
+  
+
 ## Installation
 
 1. Clone the repository:
@@ -62,3 +72,7 @@ You can change the running configuration and the number of clients and round. Ch
 ```
 flower-simulation --app . --num-supernodes 5 --run-config "num_rounds=10"
 ```
+
+## Results
+
+The results of the training, including accuracy scores and any generated plots, will be saved in the `clientcontributionfl/plots/` directory.
