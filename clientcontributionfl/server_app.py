@@ -45,7 +45,8 @@ def extract_run_params(config):
         "reconstruction_threshold": config["reconstruction_threshold"],
         "max_weight": config["max_weight"],
         "strategy_name": config['strategy'],
-        "secaggplus": config.get("secaggplus", True)
+        "secaggplus": config.get("secaggplus", True),
+        "alpha": config.get("alpha", 0.05)
     }
 
 def create_legacy_context(context, num_rounds, strategy):
@@ -70,6 +71,7 @@ def save_history(history, params):
         f"_R={params['num_rounds']}"
         f"_D={params['distribution']}"
         f"_SecAgg={'On' if params['secaggplus'] else 'Off'}"
+        f"_alpha={params['alpha']}"
     )
     np.save(
         Path(params['save_path']) / Path("results") / Path(f"history{file_suffix}"), 

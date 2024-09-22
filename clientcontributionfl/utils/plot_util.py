@@ -11,7 +11,7 @@ def load_history(file_path: str):
     return loaded_array
 
 
-def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool):
+def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool, alpha: float):
     """
     Read numpy files for FedAvg and ContFedAvg strategies and plot their accuracy and loss.
 
@@ -28,7 +28,7 @@ def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_di
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
 
     for strategy in strategies:
-        file_suffix = f"_S={strategy}_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}"
+        file_suffix = f"_S={strategy}_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}_alpha={alpha}"
         file_path = Path(save_plot_path) / f"history{file_suffix}.npy"
         
         history = np.load(file_path, allow_pickle=True).item()
@@ -53,7 +53,7 @@ def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_di
     ax2.legend(loc="upper right")
 
     plt.tight_layout()
-    plt.savefig(Path(save_plot_path) / Path(f"strategy_comparison_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}.png"))
+    plt.savefig(Path(save_plot_path) / Path(f"strategy_comparison_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}_alpha={alpha}.png"))
     plt.close()
 
 def plot_metric_from_history(
@@ -118,6 +118,7 @@ if __name__ == "__main__":
         f"_R={config['num_rounds']}"
         f"_D={config['distribution']}"
         f"_SecAgg={'On' if config['secaggplus'] else 'Off'}"
+        f"_alpha={config['alpha']}"
     )
 
     save_path = str(Path("clientcontributionfl/plots/results"))
@@ -134,5 +135,6 @@ if __name__ == "__main__":
         save_path,
         config['num_rounds'],
         config['distribution'],
-        config['secaggplus']
+        config['secaggplus'],
+        config['alpha']
     )

@@ -34,7 +34,7 @@ def entropy_score(row: pd.Series, num_classes: int) -> float:
 def compute_contribution(loss: float, dataset_score: float, gamma: float = 0.5) -> float:
     """
     Compute the contribution level of a client based on its evaluation loss and dataset score.
-    Higher gamma means more importance is given to loss, lower gamma means more importance is given to dataset distribution
+    A higher gamma value assigns greater importance to the loss, while a lower gamma value places more emphasis on the dataset distribution.
 
     Args:
         loss (float): The evaluation loss of the client.

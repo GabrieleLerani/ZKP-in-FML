@@ -34,7 +34,7 @@ fraction_evaluate = 1.0
 num_clients_per_round_fit = 1
 num_clients_per_round_eval = 1
 save_path = "clientcontributionfl/plots"
-strategy = "FedAvg"
+strategy = "ContFedAvg"
 
 
 # dataset config
@@ -42,7 +42,7 @@ dataset_name = "ylecun/mnist"
 distribution = "dirichlet"
 plot_label_distribution = true
 num_classes_per_partition = 5
-alpha = 0.05
+alpha = 0.03
 batch_size = 10
 
 # secaggplus config
@@ -62,5 +62,5 @@ default = "local-simulation"
 
 [tool.flwr.federations.local-simulation]
 options.num-supernodes = 5
-options.backend.client-resources.num-cpus = 6 # each ClientApp assumes to use 7CPUs
+options.backend.client-resources.num-cpus = 6 # each ClientApp assumes to use 6CPUs
 options.backend.client-resources.num-gpus = 0.0 # ratio of VRAM a ClientApp has access to
