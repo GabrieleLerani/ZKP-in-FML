@@ -29,7 +29,7 @@ def entropy_score(row: pd.Series, num_classes: int) -> float:
     class_proportions = row / row.sum()
     entropy = -np.sum(class_proportions * np.log(class_proportions + 1e-10))  # add small value to avoid log(0)
     entropy_score = entropy / max_entropy
-    return entropy_score
+    return entropy_score if entropy_score > 0 else -entropy_score
 
 def compute_contribution(loss: float, dataset_score: float, gamma: float = 0.5) -> float:
     """

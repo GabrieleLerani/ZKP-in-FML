@@ -29,12 +29,12 @@ clientapp = "clientcontributionfl.client_app:app"
 
 [tool.flwr.app.config]
 num_rounds = 10
-fraction_fit = 1.0
-fraction_evaluate = 1.0
+fraction_fit = 0.3
+fraction_evaluate = 0.3
 num_clients_per_round_fit = 1
 num_clients_per_round_eval = 1
 save_path = "clientcontributionfl/plots"
-strategy = "ContFedAvg"
+strategy = "FedAvg"
 
 
 # dataset config
@@ -42,7 +42,7 @@ dataset_name = "ylecun/mnist"
 distribution = "dirichlet"
 plot_label_distribution = true
 num_classes_per_partition = 5
-alpha = 0.03
+alpha = 0.01
 batch_size = 10
 
 # secaggplus config
