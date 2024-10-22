@@ -22,6 +22,8 @@ from logging import INFO, DEBUG, WARNING
 from flwr.server.strategy.aggregate import weighted_loss_avg
 from functools import reduce
 import numpy as np
+from pprint import PrettyPrinter
+import random
 
 
 class ContFedAvg(FedAvg):
@@ -62,6 +64,8 @@ class ContFedAvg(FedAvg):
             
             filtered_client_fit_ins = []
             keep_top_k_clients = keep_top_k(self.contribution_metrics, self.top_k)
+            # log(INFO, self.contribution_metrics)
+            # log(INFO, keep_top_k_clients)
             for cfi in client_fit_ins:
                 if cfi[0].cid in keep_top_k_clients:
                     filtered_client_fit_ins.append(cfi)
@@ -73,52 +77,39 @@ class ContFedAvg(FedAvg):
         
         return filtered_client_fit_ins
     
-    # def aggregate_fit(
-    #     self,
-    #     server_round: int,
-    #     results: List[Tuple[ClientProxy, FitRes]],
-    #     failures: List[Union[Tuple[ClientProxy, FitRes], BaseException]],
-    # ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
-    #     """Aggregate fit results using weighted average."""
-    #     if not results:
-    #         return None, {}
-    #     # Do not aggregate if there are failures and failures are not accepted
-    #     if not self.accept_failures and failures:
-    #         return None, {}
 
+    def configure_evaluate(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> List[Tuple[ClientProxy, EvaluateIns]]:
+        """Configure the next round of evaluation."""
         
-    #     if self.contribution_metrics:
-    #         # Filter the results to keep only the top-k clients
-    #         top_k_clients = keep_top_k(self.contribution_metrics, self.top_k)
-    #         filtered_results = [
-    #             (client, fit_res) for client, fit_res in results
-    #             if client.cid in top_k_clients
-    #         ]
-    #     else:
-    #         filtered_results = results
+        # Do not configure federated evaluation if fraction eval is 0.
+        if self.fraction_evaluate == 0.0:
+            return []
+
+        # Parameters and config
+        config = {}
+        if self.on_evaluate_config_fn is not None:
+            # Custom evaluation config function provided
+            config = self.on_evaluate_config_fn(server_round)
+        evaluate_ins = EvaluateIns(parameters, config)
+
+        # Sample clients
+        sample_size, min_num_clients = self.num_evaluation_clients(
+            client_manager.num_available()
+        )
+        clients = client_manager.sample(
+            num_clients=sample_size, min_num_clients=min_num_clients
+        )
+
+        # If it's not the first round, randomly sample 30% of clients
+        if server_round > 1:
+            num_clients_to_sample = max(1, int(0.3 * len(clients)))
+            clients = random.sample(clients, num_clients_to_sample)
+
+        # Return client/config pairs
+        return [(client, evaluate_ins) for client in clients]
         
-        
-    #     # Convert results
-    #     weights_results = [
-    #         (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
-    #         for _, fit_res in filtered_results
-    #     ]
-
-    #     log(INFO, f"configure_fit: aggregating only top weights: {len(weights_results)}")
-
-    #     aggregated_ndarrays = aggregate(weights_results)
-
-    #     parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
-
-    #     # Aggregate custom metrics if aggregation fn was provided
-    #     metrics_aggregated = {}
-    #     if self.fit_metrics_aggregation_fn:
-    #         fit_metrics = [(res.num_examples, res.metrics) for _, res in filtered_results]
-    #         metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
-    #     elif server_round == 1:  # Only log this warning once
-    #         log(WARNING, "No fit_metrics_aggregation_fn provided")
-
-    #     return parameters_aggregated, metrics_aggregated
 
     def aggregate_evaluate(
         self,
@@ -141,11 +132,14 @@ class ContFedAvg(FedAvg):
             ]
         )
 
-        eval_metrics = [(res.num_examples, res.metrics) for _, res in results]
-        # get metrics sent from clients in evaluate() function
-        for _, metric in eval_metrics:
-            for key, value in metric.items():
-                self.contribution_metrics[key] = value
+
+        if server_round == 1:
+
+            eval_metrics = [(res.num_examples, res.metrics) for _, res in results]
+            # get metrics sent from clients in evaluate() function
+            for _, metric in eval_metrics:
+                for key, value in metric.items():
+                    self.contribution_metrics[key] = value
         
             
 
@@ -162,6 +156,8 @@ class ContFedAvg(FedAvg):
 def keep_top_k(d, k):
     k = min(k, len(d)) # if k is greater than the number of clients, keep all clients
     return dict(sorted(d.items(), key=lambda x: x[1], reverse=True)[:k])
+
+
 
 
 def aggregate(results: List[Tuple[NDArrays, int]]) -> NDArrays:

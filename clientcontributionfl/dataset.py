@@ -78,17 +78,15 @@ def load_centralized_dataset(config: Dict[str, any]) -> tuple[DataLoader, int]:
 
 def get_partitioner(cfg: Dict[str, any], num_partitions: int):
     distribution = cfg["distribution"]
-    num_classes_per_partition = cfg["num_classes_per_partition"]
-    alpha = cfg["alpha"]
     
     if distribution == "linear":
         partitioner = LinearPartitioner(num_partitions=num_partitions)
     elif distribution == "exponential":
         partitioner = ExponentialPartitioner(num_partitions=num_partitions)
     elif distribution == "dirichlet":
-        partitioner = DirichletPartitioner(num_partitions=num_partitions, alpha=alpha, partition_by="label")
+        partitioner = DirichletPartitioner(num_partitions=num_partitions, alpha= cfg["alpha"], partition_by="label")
     elif distribution == "pathological":
-        partitioner = PathologicalPartitioner(num_partitions=num_partitions, partition_by="label", num_classes_per_partition=num_classes_per_partition, class_assignment_mode="deterministic")
+        partitioner = PathologicalPartitioner(num_partitions=num_partitions, partition_by="label", num_classes_per_partition=cfg["num_classes_per_partition"], class_assignment_mode="deterministic")
     elif distribution == "square":
         partitioner = SquarePartitioner(num_partitions=num_partitions)
     elif distribution == "iid":

@@ -13,6 +13,7 @@ dependencies = [
     "flwr[simulation]>=1.11.0",
     "flwr-datasets[vision]>=0.3.0",
     "torch==2.4.1",
+    "torchmetrics",
     "torchvision==0.19.1",
     "matplotlib==3.9.2",
 ]
@@ -28,39 +29,41 @@ serverapp = "clientcontributionfl.server_app:app"
 clientapp = "clientcontributionfl.client_app:app"
 
 [tool.flwr.app.config]
-num_rounds = 10
+num_rounds = 30
 fraction_fit = 0.3
 fraction_evaluate = 0.3
-num_clients_per_round_fit = 1
-num_clients_per_round_eval = 1
+num_clients_per_round_fit = 2
+num_clients_per_round_eval = 2
 save_path = "clientcontributionfl/plots"
 strategy = "FedAvg"
+top_k = 2
 
 
 # dataset config
 dataset_name = "ylecun/mnist"
 distribution = "dirichlet"
 plot_label_distribution = true
-num_classes_per_partition = 5
-alpha = 0.01
+num_classes_per_partition = 5 # only for pathological distribution
+alpha = 0.5
 batch_size = 10
 
 # secaggplus config
-secaggplus = true
+secaggplus = false
 num_shares = 3
 reconstruction_threshold = 2
 max_weight = 9000
 
 # train config
-gamma = 0.2
+gamma = 0.0
 device = "cpu"
-num_epochs = 2
+num_epochs = 1
 lr = 0.1
 
 [tool.flwr.federations]
 default = "local-simulation"
 
 [tool.flwr.federations.local-simulation]
+backend="ray"
 options.num-supernodes = 5
 options.backend.client-resources.num-cpus = 6 # each ClientApp assumes to use 6CPUs
 options.backend.client-resources.num-gpus = 0.0 # ratio of VRAM a ClientApp has access to

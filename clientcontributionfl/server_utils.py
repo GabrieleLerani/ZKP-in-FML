@@ -22,8 +22,8 @@ def get_evaluate_metrics_aggregation(cfg: Dict[str, any]):
         # `configure_evaluate()` method. The returned config will be sent to the clients
         # for evaluation and they can access it via `config` parameter in their 
         # `evaluate` method.
-        for _, metric in metrics:
-            log(INFO, f"METRICS: {metric}")
+        # for _, metric in metrics:
+        #     log(INFO, f"METRICS: {metric}")
 
         return {}    
     return evaluate_metrics_aggregation_fn
@@ -111,7 +111,6 @@ def get_strategy(
     strategy_class = FedAvg if cfg['strategy'] == 'FedAvg' else ContFedAvg
 
 
-
     common_args = {
         'fraction_fit': cfg['fraction_fit'],
         'fraction_evaluate': cfg['fraction_evaluate'],
@@ -122,6 +121,11 @@ def get_strategy(
         'on_evaluate_config_fn': get_on_evaluate_config(cfg),
         'evaluate_metrics_aggregation_fn': get_evaluate_metrics_aggregation(cfg)
     }
+
+    # Add ContFedAvg-specific parameter if the strategy is ContFedAvg
+    if cfg['strategy'] == 'ContFedAvg':
+        common_args['top_k'] = cfg.get('top_k', 2)
+
 
     return strategy_class(**common_args)
 

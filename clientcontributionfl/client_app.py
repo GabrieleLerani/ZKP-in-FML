@@ -97,10 +97,15 @@ class FlowerClient(NumPyClient):
 
         log(INFO, f"Round: {config['server_round']}, Client {self.node_id[:3]} is doing evaluate() with loss: {loss:.4f} and accuracy: {accuracy:.4f}")
 
-        contribution = compute_contribution(loss, self.dataset_score, self.trainer_config['gamma'])
-
+        # contribution = compute_contribution(loss, self.dataset_score, self.trainer_config['gamma'])
+        
+        if config['server_round'] == 1:
+            contribution = compute_contribution(loss, self.dataset_score, self.trainer_config['gamma'])
+            metric = {f"{self.node_id}": float(contribution)}
+        else:
+            metric = {}
         # send client contriubtion to the server the key is the client id
-        return float(loss), len(self.testloader), {f"{self.node_id}": float(contribution)}
+        return float(loss), len(self.testloader), metric
 
 
 

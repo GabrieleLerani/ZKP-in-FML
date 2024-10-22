@@ -10,6 +10,44 @@ def load_history(file_path: str):
     loaded_array = np.load(file_path, allow_pickle=True).item()
     return loaded_array
 
+def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool):
+    """
+    Read numpy files for FedAvg strategy with different alpha values and plot their centralized accuracy.
+
+    Parameters
+    ----------
+    save_plot_path : Path
+        Folder to save the plot to.
+    num_rounds : int
+        Number of rounds in the simulation.
+    dataset_distribution : str
+        Distribution of the dataset used.
+    secaggplus : bool
+        Whether SecAgg+ was used or not.
+    """
+    alpha_values = [0.03, 0.1, 0.5, 1.0, 2.0]
+    plt.figure(figsize=(10, 6))
+
+    for alpha in alpha_values:
+        file_suffix = f"_S=FedAvg_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}_alpha={alpha}"
+        file_path = Path(save_plot_path) / f"history{file_suffix}.npy"
+        
+        history = np.load(file_path, allow_pickle=True).item()
+
+        # Plot centralized accuracy
+        rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
+        plt.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=f"α = {alpha}")
+
+    plt.title(f"Centralized Validation Accuracy - MNIST (FedAvg, {dataset_distribution})")
+    plt.xlabel("Rounds")
+    plt.ylabel("Accuracy")
+    plt.legend(loc="lower right")
+    plt.ylim([0.2, 1])
+
+    plt.tight_layout()
+    plt.savefig(Path(save_plot_path) / Path(f"alpha_comparison_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}.png"))
+    plt.close()
+
 
 def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool, alpha: float):
     """
@@ -131,10 +169,18 @@ if __name__ == "__main__":
     #     file_suffix,
     # )
 
-    plot_comparison_from_files(
+    # plot_comparison_from_files(
+    #     save_path,
+    #     config['num_rounds'],
+    #     config['distribution'],
+    #     config['secaggplus'],
+    #     config['alpha']
+    # )
+
+    plot_for_varying_alphas(
         save_path,
         config['num_rounds'],
         config['distribution'],
         config['secaggplus'],
-        config['alpha']
+        
     )

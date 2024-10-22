@@ -49,7 +49,8 @@ def compute_contribution(loss: float, dataset_score: float, gamma: float = 0.5) 
     # Compute the inverse of the loss (higher loss should result in lower contribution)
     inverse_loss = 1 / (loss + 1e-8)  # Add a small epsilon to avoid division by zero
 
-    return gamma * inverse_loss + (1 - gamma) * dataset_score
+    return (1 - gamma) * dataset_score
+    #return gamma * inverse_loss + (1 - gamma) * dataset_score
 
 
 
