@@ -1,0 +1,52 @@
+// Function to calculate the sum of elements in an array
+def sum<N>(field[N] a) -> field {
+    field mut total = 0;
+    for u32 i in 0..N {
+        total = total + a[i];
+    }
+    return total;
+}
+    
+
+
+// Function to calculate variance of the elements in an array
+def variance<N>(field[N] arr, field mean) -> field {
+    field mut var = 0;
+    for u32 i in 0..N {
+        var = var + (arr[i] - mean) * (arr[i] - mean);
+    }
+    return var;
+}
+    
+
+// Function to calculate label diversity (number of non-zero counts)
+def diversity<N>(field[N] arr, field thr) -> field {
+    field mut div = 1;
+    for u32 i in 0..N {
+        // TODO here it assigns a +1 if client has at least gamma elements but
+        // this metric is not representative of the whole dataset distribution
+        div = if arr[i] >= thr {div + 1} else {div};
+
+    }
+    return div;
+}
+    
+
+// Main function to compute dataset score
+// Inputs: label counts, scale factor, beta (weight)
+def main(private field[10] counts, private field scale, private field beta, private field mean_val, private field thr, field pre_computed_score) -> field {
+    
+    field total = sum(counts);
+    field var = variance(counts, mean_val);
+    field div = diversity(counts, thr);
+    
+    // Calculate the final score (scaled)
+    field score = (beta * var) + (div * scale);
+    log("score is {}, pre_computed_score is {}, var {}, div {}, mean_val {}", score, pre_computed_score, var, div, mean_val);
+    assert(score == pre_computed_score);
+    
+    return score;
+}
+    
+
+

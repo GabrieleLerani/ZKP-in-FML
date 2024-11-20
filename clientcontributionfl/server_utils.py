@@ -11,6 +11,7 @@ from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
 from .model import Net, test
 from .strategy import ContFedAvg
+from .zk_strategy import ZkAvg
 
 from logging import INFO
 
@@ -100,15 +101,24 @@ def get_evaluate_fn(
 
 
 
+
+
 def get_strategy(
         cfg: Dict[str, any],
         num_classes: int,
         testloader: DataLoader
     ) -> Strategy:
 
-    assert cfg['strategy'] in ['FedAvg', 'ContFedAvg'], "Strategy must be either FedAvg or ContFedAvg"
-
-    strategy_class = FedAvg if cfg['strategy'] == 'FedAvg' else ContFedAvg
+    
+    strategy_class = None
+    if cfg['strategy'] == 'FedAvg':
+        strategy_class = FedAvg
+    elif cfg['strategy'] == 'ContFedAvg': # TODO remove it
+        strategy_class = ContFedAvg
+    elif cfg['strategy'] == 'ZkAvg':
+        strategy_class = ZkAvg
+    else:
+        raise BaseException("Strategy not recognized")
 
 
     common_args = {
@@ -119,7 +129,8 @@ def get_strategy(
         'evaluate_fn': get_evaluate_fn(cfg['device'], num_classes, testloader),
         'on_fit_config_fn': get_on_fit_config(cfg),
         'on_evaluate_config_fn': get_on_evaluate_config(cfg),
-        'evaluate_metrics_aggregation_fn': get_evaluate_metrics_aggregation(cfg)
+        'evaluate_metrics_aggregation_fn': get_evaluate_metrics_aggregation(cfg),
+        
     }
 
     # Add ContFedAvg-specific parameter if the strategy is ContFedAvg

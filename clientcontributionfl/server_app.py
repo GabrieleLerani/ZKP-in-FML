@@ -15,6 +15,8 @@ def main(driver: Driver, context: Context):
     config = context.run_config
     print_config(config)
     
+    
+
     # Step 2: Extract run parameters
     run_params = extract_run_params(config)
     

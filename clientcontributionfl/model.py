@@ -66,6 +66,7 @@ def train(
         accuracy_metric.reset()
         
         for batch in trainloader:
+            
             images, labels = batch["image"], batch["label"]
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -98,7 +99,9 @@ def test(net: nn.Module, testloader: DataLoader, device: str, accuracy_metric: A
     
     with torch.no_grad():
         for batch in testloader:
+            
             images, labels = batch["image"], batch["label"]
+
             images, labels = images.to(device), labels.to(device)
             outputs = net(images)
             test_loss += criterion(outputs, labels).item()

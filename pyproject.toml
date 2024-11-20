@@ -15,7 +15,7 @@ dependencies = [
     "torch==2.4.1",
     "torchmetrics",
     "torchvision==0.19.1",
-    "matplotlib==3.9.2",
+    "matplotlib==3.9.2"
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -30,22 +30,26 @@ clientapp = "clientcontributionfl.client_app:app"
 
 [tool.flwr.app.config]
 num_rounds = 30
-fraction_fit = 0.3
+fraction_fit = 1.0
 fraction_evaluate = 0.3
 num_clients_per_round_fit = 2
 num_clients_per_round_eval = 2
 save_path = "clientcontributionfl/plots"
-strategy = "FedAvg"
+strategy = "ZkAvg"
 top_k = 2
 
 
 # dataset config
 dataset_name = "ylecun/mnist"
-distribution = "dirichlet"
+distribution = "iid_and_non_iid"
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5
 batch_size = 10
+
+# dataset config for non_iid conditions
+iid_ratio = 0.8 # percentge of iid_node
+x_non_iid = 2 # number of labels of non_iid clients
 
 # secaggplus config
 secaggplus = false
@@ -58,6 +62,11 @@ gamma = 0.0
 device = "cpu"
 num_epochs = 1
 lr = 0.1
+
+# zk proof params
+scale = 1000 # used to scale floating value into fixed integers in zokrates
+beta = 1 # the importance to give variance
+thr = 1000 # the threshold to evaluate contribution
 
 [tool.flwr.federations]
 default = "local-simulation"

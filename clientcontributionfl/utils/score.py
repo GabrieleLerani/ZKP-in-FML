@@ -2,7 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-
+def compute_zk_score(counts, scale, beta, thr) -> int:
+    "Compute the score associated to a partition, will be used as a witness for ZK proof"
+    total = sum(counts)
+    mean_val = total // len(counts)
+    variance = sum((count - mean_val) ** 2 for count in counts)
+    diversity = sum(1 for count in counts if count >= thr) + 1
+    score = (diversity * scale) + (beta * variance)
+    return int(score)
 
 def entropy_score(row: pd.Series, num_classes: int) -> float:
     """
@@ -45,7 +52,7 @@ def compute_contribution(loss: float, dataset_score: float, gamma: float = 0.5) 
         float: The computed contribution level of the client.
     """
     
-
+    # TODO
     # Compute the inverse of the loss (higher loss should result in lower contribution)
     inverse_loss = 1 / (loss + 1e-8)  # Add a small epsilon to avoid division by zero
 
