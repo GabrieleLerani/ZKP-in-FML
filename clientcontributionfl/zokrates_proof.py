@@ -1,6 +1,8 @@
 import os
 import subprocess
 from clientcontributionfl.utils import compute_zk_score
+from logging import INFO, DEBUG
+from flwr.common.logger import log
 
 class Zokrates:
     def __init__(self, working_dir = None):
@@ -32,7 +34,8 @@ class Zokrates:
         """Compile the ZoKrates program and set up the proving and verification keys."""
         zok_file = "../../clientcontributionfl/contribution.zok "
         
-        self._run_command(f"zokrates compile -i {zok_file} --debug")
+        res = self._run_command(f"zokrates compile -i {zok_file} --debug")
+        log(INFO, res)
         self._run_command("zokrates setup")
 
     # TODO consider to pass parameters ad dict or other structure

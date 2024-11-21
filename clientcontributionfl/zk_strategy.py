@@ -152,10 +152,12 @@ class ZkAvg(FedAvg):
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
-        filtered_clients = self._filter_clients(clients)
+        # do not filter when is the first round
+        if server_round != 1:
+            clients = self._filter_clients(clients)
         
         # Return client/config pairs
-        return [(client, fit_ins) for client in filtered_clients]
+        return [(client, fit_ins) for client in clients]
     
 
     def configure_evaluate(
@@ -180,10 +182,13 @@ class ZkAvg(FedAvg):
         clients = client_manager.sample(
             num_clients=sample_size, min_num_clients=min_num_clients
         )
-        filtered_clients = self._filter_clients(clients)
+
+        # do not filter when is the first round
+        if server_round != 1:
+            clients = self._filter_clients(clients)
 
         # Return client/config pairs
-        return [(client, evaluate_ins) for client in filtered_clients]
+        return [(client, evaluate_ins) for client in clients]
         
 
 

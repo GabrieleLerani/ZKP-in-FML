@@ -57,7 +57,7 @@ class ZkClient(NumPyClient):
         self.accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(self.trainer_config['device'])
         
         # TODO check client path is correctly set
-        self.path_proof_dir = os.path.join("./proofs", f"client_{self.node_id}")
+        self.path_proof_dir = os.path.join("proofs", f"client_{self.node_id}")
         self.zk = Zokrates(self.path_proof_dir)
 
     def compute_zkp_contribution(self, score):
