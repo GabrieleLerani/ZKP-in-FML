@@ -23,8 +23,8 @@ def variance<N>(field[N] arr, field mean) -> field {
 def diversity<N>(field[N] arr, field thr) -> field {
     field mut div = 1;
     for u32 i in 0..N {
-        // TODO here it assigns a +1 if client has at least gamma elements but
-        // this metric is not representative of the whole dataset distribution
+        
+        //assigns a +1 if client has at least gamma elements 
         div = if arr[i] >= thr {div + 1} else {div};
 
     }

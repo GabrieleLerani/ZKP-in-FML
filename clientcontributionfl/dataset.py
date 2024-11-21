@@ -37,100 +37,6 @@ def apply_transforms(batch):
     return batch
 
 
-def partition_dataset_mixed(dataset, num_clients=10, samples_per_client=600, iid_clients=8, x_non_iid=2, batch_size=32, test_split=0.2):
-    """
-    Partition a dataset with mixed IID and non-IID clients, similar 
-    to Wu et al. https://arxiv.org/abs/2012.00661
-    Args:
-        dataset: A PyTorch Dataset object with a `targets` attribute.
-        num_clients: Total number of clients.
-        samples_per_client: Number of samples per client.
-        iid_clients: Number of clients using IID partitioning.
-        x_non_iid: Number of classes for non-IID clients.
-        batch_size: Batch size for the DataLoader.
-        test_split: Proportion of samples to reserve for testing.
-
-    Returns:
-        A list of tuples (train_loader, test_loader, classes) for each client.
-    """
-    
-
-    global node_partitions
-    # Nodes partition
-    if node_partitions is None: 
-
-        # Group indices of dataset by class
-        class_indices = defaultdict(list)
-        for idx, label in enumerate(dataset.targets):
-            class_indices[int(label)].append(int(idx))
-
-        node_partitions = []
-        num_classes = len(class_indices)
-        assert 0 <= x_non_iid <= num_classes, "x labels must be less than num classes."
-        if x_non_iid == 0:
-            iid_clients = num_clients
-
-        for i in range(num_clients):
-            if i < iid_clients:
-                # IID client: Randomly sample from the entire dataset
-                all_indices = list(range(len(dataset)))
-                selected_indices = random.sample(all_indices, samples_per_client)
-            else:
-                # Non-IID client: Select x classes and sample from them
-                selected_classes = random.sample(range(num_classes), x_non_iid)
-                selected_indices = []
-                for cls in selected_classes:
-                    
-                    selected_indices += random.sample(class_indices[cls], samples_per_client // x_non_iid)
-
-                # Adjust for uneven split
-                remaining = samples_per_client - len(selected_indices)
-                if remaining > 0:
-                    additional_indices = random.sample(
-                        [i for cls in selected_classes for i in class_indices[cls]],
-                        remaining
-                    )
-                    selected_indices += additional_indices
-
-            
-            # Shuffle selected indices to add randomness
-            random.shuffle(selected_indices)
-
-            # Get unique classes for this client
-            selected_labels = [int(dataset.targets[idx]) for idx in selected_indices]
-            unique_classes = set(selected_labels)
-
-            # Split into train and test sets
-            split = int((1 - test_split) * len(selected_indices))
-            train_indices = selected_indices[:split]
-            test_indices = selected_indices[split:]
-
-            # Create DataLoaders
-            train_loader = DataLoader(Subset(dataset, train_indices), batch_size=batch_size, shuffle=True)
-            test_loader = DataLoader(Subset(dataset, test_indices), batch_size=batch_size, shuffle=False)
-
-            node_partitions.append((train_loader, test_loader, 10)) # mnist dataset returns 10 labels
-
-    return node_partitions
-
-def load_data_mixed(config: Dict[str, any], partition_id: int, num_partitions: int) -> tuple[DataLoader, DataLoader, int]:
-    # Load MNIST dataset
-    mnist_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=TRAIN_TRANSFORMS)
-
-    batch_size = config["batch_size"]
-    iid_ratio = config["iid_ratio"]
-    x_non_iid = config["x_non_iid"]
-    # Partition MNIST dataset   
-    node_data = partition_dataset_mixed(
-        dataset=mnist_dataset,
-        num_clients=num_partitions,
-        samples_per_client=6000, # TODO set as hyper params
-        iid_clients=int(num_partitions * iid_ratio),  # 8 clients are IID
-        x_non_iid=x_non_iid,    # Non-IID clients use x=2
-        batch_size=batch_size 
-    )[partition_id]
-    return node_data
-
 
 def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) -> tuple[DataLoader, DataLoader, int]:
     """Load client dataset using flower FederatedDataset and partitioners."""
@@ -145,7 +51,7 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
         )
         if config["plot_label_distribution"]:
             partitioner = fds.partitioners["train"]
-            plot_label_distributions(partitioner, label_name=f"label", verbose_labels=True)
+            plot_label_distributions(partitioner ,label_name=f"label",verbose_labels=True, legend=True)
             label_dist_path = os.path.join(config["save_path"], "label_dist")
             if not os.path.exists(label_dist_path):
                 os.makedirs(label_dist_path)

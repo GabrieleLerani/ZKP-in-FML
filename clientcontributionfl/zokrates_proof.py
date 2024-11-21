@@ -1,6 +1,6 @@
 import os
 import subprocess
-from .utils.score import compute_zk_score
+from clientcontributionfl.utils import compute_zk_score
 
 class Zokrates:
     def __init__(self, working_dir = None):

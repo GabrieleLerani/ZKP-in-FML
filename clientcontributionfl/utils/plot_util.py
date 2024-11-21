@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 from pathlib import Path
 from flwr.server.history import History
-from typing import Optional
+from typing import Optional, List
 from flwr.common.config import get_project_config
 
 def load_history(file_path: str):
@@ -49,7 +49,7 @@ def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distr
     plt.close()
 
 
-def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool, alpha: float):
+def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool, alpha: float, strategies: List[str]):
     """
     Read numpy files for FedAvg and ContFedAvg strategies and plot their accuracy and loss.
 
@@ -62,7 +62,7 @@ def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_di
     dataset_distribution : str
         Distribution of the dataset used.
     """
-    strategies = ['FedAvg', 'ContFedAvg']
+    
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
 
     for strategy in strategies:
@@ -83,7 +83,7 @@ def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_di
     ax1.set_xlabel("Rounds")
     ax1.set_ylabel("Accuracy")
     ax1.legend(loc="lower right")
-    ax1.set_ylim([0.2, 1])
+    ax1.set_ylim([0.4, 1])
 
     ax2.set_title("Distributed Training Loss - MNIST")
     ax2.set_xlabel("Rounds")

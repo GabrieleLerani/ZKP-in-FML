@@ -9,7 +9,7 @@ from torchmetrics import Accuracy
 from flwr.common import Metrics, Scalar
 from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
-from .model import Net, test
+from .models.simple_cnn import Net, test
 from .strategy import ContFedAvg
 from .zk_strategy import ZkAvg
 
@@ -98,9 +98,6 @@ def get_evaluate_fn(
             return loss, {"accuracy": accuracy}
 
     return evaluate_fn
-
-
-
 
 
 def get_strategy(

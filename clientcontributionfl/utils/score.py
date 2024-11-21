@@ -8,7 +8,7 @@ def compute_zk_score(counts, scale, beta, thr) -> int:
     mean_val = total // len(counts)
     variance = sum((count - mean_val) ** 2 for count in counts)
     diversity = sum(1 for count in counts if count >= thr) + 1
-    score = (diversity * scale) + (beta * variance)
+    score =  (beta * variance) + (diversity * scale)
     return int(score)
 
 def entropy_score(row: pd.Series, num_classes: int) -> float:
@@ -61,7 +61,6 @@ def compute_contribution(loss: float, dataset_score: float, gamma: float = 0.5) 
 
 
 
-
 def plot_contribution_function(L_range, d_fixed, gammas):
     plt.figure(figsize=(10, 6))
 
@@ -77,8 +76,6 @@ def plot_contribution_function(L_range, d_fixed, gammas):
     plt.grid(True)
     plt.xlim(0.001)  # Set x-axis limit from 0 to 3 to show full range of loss
     plt.ylim(0, 1.1)  # Set y-axis limit from 0 to 1.1 to show full range of contribution
-
-    
 
     plt.tight_layout()
     plt.show()

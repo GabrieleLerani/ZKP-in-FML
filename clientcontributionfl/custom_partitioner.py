@@ -1,8 +1,9 @@
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from datasets import Dataset
 from collections import defaultdict
 from flwr_datasets.partitioner.partitioner import Partitioner
 import random
+import numpy as np
 
 class LabelBasedPartitioner(Partitioner):
     """
@@ -13,7 +14,8 @@ class LabelBasedPartitioner(Partitioner):
             self, 
             num_partitions: int, 
             iid_ratio: int, 
-            x: int = 2
+            x: int = 2,
+            seed: Optional[int] = 42,
     ):
         """
         Initialize the partitioner.
@@ -26,11 +28,20 @@ class LabelBasedPartitioner(Partitioner):
             Ratio of clients with IID data.
         x : int
             Number of classes per non-IID client.
+        seed: int
+            Seed used for dataset shuffling.
         """
         super().__init__()
+        # Attributes based on the constructor
         self._num_partitions = num_partitions
-        self.iid_ratio = self._init_iid_ratio(iid_ratio)
-        self.x = x
+        self._check_num_partitions_greater_than_zero()
+        self._iid_ratio = self._init_iid_ratio(iid_ratio)
+        self._x = x
+        self._seed = seed
+        self._rng = np.random.default_rng(seed=self._seed)  # NumPy random generator
+
+        # Utility attributes
+        # The attributes below are determined during the first call to load_partition
         self._precomputed_partitions: Dict[int, List[int]] = {}
 
     @property
@@ -55,23 +66,25 @@ class LabelBasedPartitioner(Partitioner):
         class_indices = self._get_class_indices(self.dataset)
         all_indices = list(range(len(self.dataset["image"])))
         num_samples = len(self.dataset) // self._num_partitions
-        iid_clients = self._num_partitions * self.iid_ratio
+        iid_clients = self._num_partitions * self._iid_ratio
         for partition_id in range(self.num_partitions):
             if partition_id < iid_clients:
                 # IID setting
-                selected_indices = random.sample(all_indices, num_samples)
+                selected_indices = self._rng.choice(all_indices, size=num_samples, replace=False)
             else:
                 # Non-IID setting
                 num_classes = len(class_indices)
-                self.x = min(self.x, num_classes)
-                selected_classes = random.sample(range(num_classes), self.x)
+                self._x = min(self._x, num_classes) # in the case user passes wrong x
+                selected_classes = self._rng.choice(range(num_classes), size=self._x, replace=False)
                 selected_indices = []
                 for cls in selected_classes:
-                    selected_indices += random.sample(
-                        class_indices[cls], min(num_samples // self.x, len(class_indices[cls]))
-                    )
+                    selected_indices += self._rng.choice(
+                        class_indices[cls], 
+                        size=min(num_samples // self._x, len(class_indices[cls])),
+                        replace=False
+                    ).tolist()
                 # Shuffle to avoid order bias
-                selected_indices = random.sample(selected_indices, num_samples)
+                selected_indices = self._rng.choice(selected_indices, size=num_samples, replace=False).tolist()
 
             self._precomputed_partitions[partition_id] = selected_indices
 
@@ -98,3 +111,9 @@ class LabelBasedPartitioner(Partitioner):
         selected_indices = self._precomputed_partitions[partition_id]
 
         return self.dataset.select(selected_indices)
+    
+
+    def _check_num_partitions_greater_than_zero(self) -> None:
+        """Test num_partition left sides correctness."""
+        if not self._num_partitions > 0:
+            raise ValueError("The number of partitions needs to be greater than zero.")
