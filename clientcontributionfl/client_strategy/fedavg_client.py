@@ -2,7 +2,7 @@ from collections import OrderedDict
 from typing import Dict
 from torch.utils.data import DataLoader
 import torch
-import os
+
 
 from flwr.client import NumPyClient
 from flwr.common import NDArrays, Scalar
@@ -14,12 +14,10 @@ from torchmetrics import Accuracy
 from clientcontributionfl.models import Net, train, test
 
 # relative imports
-from clientcontributionfl.utils import compute_contribution, compute_zk_score
-from clientcontributionfl import load_data, compute_partition_counts, Zokrates
 
 
 class FedAvgClient(NumPyClient):
-    """Define a Flower Client."""
+    """Define a standard client acting in FedAvg strategy."""
 
     def __init__(
         self, 
@@ -28,8 +26,19 @@ class FedAvgClient(NumPyClient):
         trainloader: DataLoader,
         testloader: DataLoader,
         num_classes: int,
-        trainer_config: Dict[str, Scalar]
+        config: Dict[str, Scalar]
     ) -> None:
+        """
+        Initialize the FedAvgClient.
+
+        Args:
+            node_id (str): Unique identifier for the client node.
+            partition_id (int): Identifier for the data partition assigned to this client.
+            trainloader (DataLoader): DataLoader for the training data.
+            testloader (DataLoader): DataLoader for the testing data.
+            num_classes (int): Number of classes in the classification task.
+            config (Dict[str, Scalar]): Configuration dictionary for the trainer.
+        """
         super().__init__()
 
         self.node_id = node_id
@@ -42,21 +51,18 @@ class FedAvgClient(NumPyClient):
 
         # a model that is randomly initialised at first
         self.model = Net(num_classes)
-        self.trainer_config = trainer_config
+        self.config = config
 
         # client training optimizer and criterion
         self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.trainer_config['lr'])
-        self.accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(self.trainer_config['device'])
+        self.accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(self.config['device'])
         
 
 
     def set_parameters(self, parameters):
         """Receive parameters and apply them to the local model."""
         params_dict = zip(self.model.state_dict().keys(), parameters)
-
         state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
-
         self.model.load_state_dict(state_dict, strict=True)
 
     def get_parameters(self, config: Dict[str, Scalar]):
@@ -71,29 +77,29 @@ class FedAvgClient(NumPyClient):
         """
         
         self.set_parameters(parameters)
-
-        params = {}
+        optimizer = torch.optim.SGD(self.model.parameters(), lr=config["lr"])
+        
         train(
             self.model, 
             self.trainloader, 
-            self.trainer_config['num_epochs'], 
-            self.trainer_config['device'], 
-            self.optimizer,
+            self.config['num_epochs'], 
+            self.config['device'], 
+            optimizer,
             self.criterion,
             self.accuracy_metric
         )
 
-        return self.get_parameters({}), len(self.trainloader), params
+        return self.get_parameters({}), len(self.trainloader), {}
 
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]):
         """Evaluate the model on the data this client has."""
         self.set_parameters(parameters)
         
-        # TODO skip evaluate if first round when zk strategy is selected
+        
         loss, accuracy = test(
             self.model,
             self.testloader,
-            self.trainer_config['device'],
+            self.config['device'],
             self.accuracy_metric
         )
 

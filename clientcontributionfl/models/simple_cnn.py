@@ -13,13 +13,12 @@ class Net(nn.Module):
     def __init__(self, num_classes: int) -> None:
         super(Net, self).__init__()
 
-
         # define layers
         self.conv1 = nn.Conv2d(1, 32, 5, padding=1)
         self.conv2 = nn.Conv2d(32, 64, 5, padding=1)
         self.pool = nn.MaxPool2d(kernel_size=(2, 2), padding=1)
-        self.fc1 = nn.Linear(64 * 7 * 7, 128)
-        self.fc2 = nn.Linear(128, 10)
+        self.fc1 = nn.Linear(64 * 7 * 7, 512) # change to 512
+        self.fc2 = nn.Linear(512, 10) # change to 512
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the CNN.

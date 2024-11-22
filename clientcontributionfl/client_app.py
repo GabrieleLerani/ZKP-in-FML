@@ -5,11 +5,11 @@ from flwr.common import Context
 from flwr.common.config import get_project_config
 
 from clientcontributionfl import load_data, compute_partition_counts
-from clientcontributionfl.client_strategy import FedAvgClient, ZkClient
+from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient
 
 
 def client_fn(context: Context) -> Client:
-        
+    
     # usally a random number instantiated by the server
     node_id = context.node_id
 
@@ -29,7 +29,7 @@ def client_fn(context: Context) -> Client:
             trainloader=train_loader,
             testloader=test_loader,
             num_classes=num_classes,
-            trainer_config=config
+            config=config
         ).to_client()
 
     elif config["strategy"] == "ZkAvg":
@@ -40,21 +40,42 @@ def client_fn(context: Context) -> Client:
             num_classes=num_classes
         )
 
+        iid_clients = num_partitions * config["iid_ratio"]
+
         return ZkClient(
             node_id=str(node_id),
             partition_id=partition_id,
             trainloader=train_loader,
             testloader=test_loader,
-            partition_label_counts = partition_counts, # TODO test it for zk-proof
+            partition_label_counts=partition_counts,
             num_classes=num_classes,
-            trainer_config=config
+            dishonest=partition_id >= iid_clients,
+            config=config
         ).to_client()
 
-    
-    
-    
+    elif config["strategy"] == "ContAvg":
+        
+        partition_counts = compute_partition_counts(
+            data_loader=train_loader,
+            partition_id=partition_id,
+            num_classes=num_classes
+        )
 
-
+        iid_clients = num_partitions * config["iid_ratio"]
+        
+        return ContributionClient(
+            node_id=str(node_id),
+            partition_id=partition_id,
+            trainloader=train_loader,
+            testloader=test_loader,
+            partition_label_counts=partition_counts,
+            num_classes=num_classes,
+            dishonest=partition_id >= iid_clients, # set as many dishonest as non iid clients
+            config=config
+        ).to_client()
+    
+    
+    
 # Load configuration
 config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
 

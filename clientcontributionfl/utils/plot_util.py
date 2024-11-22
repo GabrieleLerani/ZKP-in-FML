@@ -29,7 +29,8 @@ def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distr
     plt.figure(figsize=(10, 6))
 
     for alpha in alpha_values:
-        file_suffix = f"_S=FedAvg_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}_alpha={alpha}"
+        
+        file_suffix = f"_S=FedAvg_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}" + (f"_alpha={alpha}" if dataset_distribution == "dirichlet" else "")
         file_path = Path(save_plot_path) / f"history{file_suffix}.npy"
         
         history = np.load(file_path, allow_pickle=True).item()
@@ -49,41 +50,60 @@ def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distr
     plt.close()
 
 
-def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool, alpha: float, strategies: List[str]):
+
+def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], strategies: List[str]):
     """
-    Read numpy files for FedAvg and ContFedAvg strategies and plot their accuracy and loss.
+    Read numpy files for strategies and plot their accuracy and loss.
 
     Parameters
     ----------
     save_plot_path : Path
-        Folder to save the plot to.
-    num_rounds : int
-        Number of rounds in the simulation.
-    dataset_distribution : str
-        Distribution of the dataset used.
+        Directory to save the plot to.
+    config : dict[str, any]
+        Configuration dictionary containing simulation parameters
+    strategies : List[str]
+        List of strategies to compare
     """
-    
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
 
+    num_rounds=config['num_rounds']
+    partitioner=config['distribution']
+    secaggplus=config['secaggplus']
+    alpha=config['alpha']
+    x_non_iid = config["x_non_iid"]
+    iid_ratio = config["iid_ratio"]
+
+    include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
+    include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
+    include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
+
+    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
+    
     for strategy in strategies:
-        file_suffix = f"_S={strategy}_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}_alpha={alpha}"
-        file_path = Path(save_plot_path) / f"history{file_suffix}.npy"
+        file_suffix = (
+            f"_S={strategy}"
+            f"_R={num_rounds}"
+            f"_P={partitioner}"
+            f"_SecAgg={'On' if secaggplus else 'Off'}"
+            + include_alpha + include_x + include_iid_ratio
+        )
+        
+        file_path = save_plot_path / f"history{file_suffix}.npy"
         
         history = np.load(file_path, allow_pickle=True).item()
 
         # Plot accuracy
         rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
-        ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=f"{strategy} - Accuracy")
+        ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=strategy)
 
         # Plot loss
         rounds_loss, values_loss = zip(*history.losses_distributed)
-        ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=f"{strategy} - Loss")
+        ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=strategy)
 
     ax1.set_title("Centralized Validation Accuracy - MNIST")
     ax1.set_xlabel("Rounds")
     ax1.set_ylabel("Accuracy")
     ax1.legend(loc="lower right")
-    ax1.set_ylim([0.4, 1])
+    ax1.set_ylim([0.2, 1])
 
     ax2.set_title("Distributed Training Loss - MNIST")
     ax2.set_xlabel("Rounds")
@@ -91,7 +111,17 @@ def plot_comparison_from_files(save_plot_path: Path, num_rounds: int, dataset_di
     ax2.legend(loc="upper right")
 
     plt.tight_layout()
-    plt.savefig(Path(save_plot_path) / Path(f"strategy_comparison_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}_alpha={alpha}.png"))
+    
+    plot_filename = (
+        f"comparison"
+        f"_strategies={'_'.join(strategies)}"
+        f"_R={num_rounds}"
+        f"_P={partitioner}"
+        f"_SecAgg={'On' if secaggplus else 'Off'}"
+        + include_alpha + include_x + include_iid_ratio
+        + ".png"
+    )
+    plt.savefig(save_plot_path / plot_filename)
     plt.close()
 
 def plot_metric_from_history(

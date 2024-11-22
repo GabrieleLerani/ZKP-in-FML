@@ -29,14 +29,13 @@ serverapp = "clientcontributionfl.server_app:app"
 clientapp = "clientcontributionfl.client_app:app"
 
 [tool.flwr.app.config]
-num_rounds = 30
-fraction_fit = 1.0
-fraction_evaluate = 0.3
+num_rounds = 10
+fraction_fit = 0.3
+fraction_evaluate = 0.1
 num_clients_per_round_fit = 2
 num_clients_per_round_eval = 2
 save_path = "clientcontributionfl/plots"
 strategy = "ZkAvg"
-top_k = 2
 
 
 # dataset config
@@ -45,11 +44,14 @@ distribution = "iid_and_non_iid"
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5
-batch_size = 10
+batch_size = 32
 
 # dataset config for non_iid nodes
-iid_ratio = 0.5 # percentge of iid_node
+iid_ratio = 0.7 # percentage of iid_node
 x_non_iid = 2 # number of labels of non_iid clients
+
+# config for dishonest clients
+dishonest_contribution = 10000000 
 
 # secaggplus config
 secaggplus = false
@@ -61,12 +63,12 @@ max_weight = 9000
 gamma = 0.0
 device = "cpu"
 num_epochs = 1
-lr = 0.1
+lr = 0.01
 
 # zk proof params
 scale = 1000 # used to scale floating value into fixed integers in zokrates
 beta = 1 # the importance to give variance
-thr = 500 # the threshold to evaluate contribution
+thr = 500 # num of minimum label to have positive contribution
 
 [tool.flwr.federations]
 default = "local-simulation"

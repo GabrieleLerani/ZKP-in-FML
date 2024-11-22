@@ -38,7 +38,7 @@ class LabelBasedPartitioner(Partitioner):
         self._iid_ratio = self._init_iid_ratio(iid_ratio)
         self._x = x
         self._seed = seed
-        self._rng = np.random.default_rng(seed=self._seed)  # NumPy random generator
+        self._rng = np.random.default_rng(seed=self._seed)  
 
         # Utility attributes
         # The attributes below are determined during the first call to load_partition
@@ -84,7 +84,7 @@ class LabelBasedPartitioner(Partitioner):
                         replace=False
                     ).tolist()
                 # Shuffle to avoid order bias
-                selected_indices = self._rng.choice(selected_indices, size=num_samples, replace=False).tolist()
+                selected_indices = self._rng.choice(selected_indices, size=min(num_samples,len(selected_indices)), replace=False).tolist()
 
             self._precomputed_partitions[partition_id] = selected_indices
 

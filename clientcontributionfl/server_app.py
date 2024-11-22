@@ -15,7 +15,6 @@ def main(driver: Driver, context: Context):
     config = context.run_config
     print_config(config)
     
-    
 
     # Step 2: Extract run parameters
     run_params = extract_run_params(config)
@@ -48,7 +47,9 @@ def extract_run_params(config):
         "max_weight": config["max_weight"],
         "strategy_name": config['strategy'],
         "secaggplus": config.get("secaggplus", True),
-        "alpha": config.get("alpha", 0.05)
+        "alpha": config.get("alpha", 0.05),
+        "x_non_iid": config.get("x_non_iid", 2),
+        "iid_ratio": config.get("iid_ratio", 0.5)
     }
 
 def create_legacy_context(context, num_rounds, strategy):
@@ -68,12 +69,22 @@ def create_workflow(params):
     return DefaultWorkflow(fit_workflow=fit_workflow)
 
 def save_history(history, params):
+    partitioner = params["distribution"]
+    alpha = params["alpha"]
+    x_non_iid = params["x_non_iid"]
+    iid_ratio = params["iid_ratio"]
+
+    include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
+    include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
+    include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
+
     file_suffix = (
         f"_S={params['strategy_name']}"
         f"_R={params['num_rounds']}"
-        f"_D={params['distribution']}"
+        f"_P={params['distribution']}"
         f"_SecAgg={'On' if params['secaggplus'] else 'Off'}"
-        f"_alpha={params['alpha']}"
+        + include_alpha + include_x + include_iid_ratio
+        
     )
     np.save(
         Path(params['save_path']) / Path("results") / Path(f"history{file_suffix}"), 

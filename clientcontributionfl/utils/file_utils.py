@@ -1,7 +1,7 @@
 import shutil
 import os
 
-# TODO move into other module with only utils on file
+# TODO move into this file other file functions
 def cleanup_proofs():
     """Remove the proofs directory and all its contents if it exists."""
     proofs_dir = os.path.join(os.getcwd(), "proofs")

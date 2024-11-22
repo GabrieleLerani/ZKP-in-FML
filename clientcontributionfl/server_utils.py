@@ -9,9 +9,10 @@ from torchmetrics import Accuracy
 from flwr.common import Metrics, Scalar
 from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
-from .models.simple_cnn import Net, test
-from .strategy import ContFedAvg
-from .zk_strategy import ZkAvg
+
+from clientcontributionfl.models import Net, test
+from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg
+
 
 from logging import INFO
 
@@ -33,20 +34,16 @@ def get_on_fit_config(cfg: Dict[str, any]):
     """Return function that prepares config to send to clients."""
 
     def fit_config_fn(server_round: int):
-        # This function will be executed by the strategy in its
-        # `configure_fit()` method. The returned config will be sent to the clients
-        # for training and they can access it via `config` parameter in their 
-        # `fit` method.
+        
         """Construct `config` that clients receive when running `fit()`"""
-        # TODO decay learning rate after 10 rounds
-        # lr = 0.1
-        # # Enable a simple form of learning rate decay
-        # if server_round > 10:
-        #     lr /= 2
+        
+        # learning rate decay of 0.995 per round
+        initial_lr = cfg.get("lr", 0.1)
+        lr = initial_lr * (0.995 ** server_round)
         
         return {
             "server_round": server_round,
-            #"lr": lr
+            "lr": lr
         }
 
     return fit_config_fn
@@ -81,8 +78,8 @@ def get_evaluate_fn(
         # on the server on a pre defined test dataset.
         
         
-        # evaluate global model only at the last round
-        if server_round % 2 == 0: #== total_rounds:
+        # evaluate global model every round
+        if server_round % 1 == 0: #== total_rounds:
             
             model = Net(num_classes)
 
@@ -110,12 +107,12 @@ def get_strategy(
     strategy_class = None
     if cfg['strategy'] == 'FedAvg':
         strategy_class = FedAvg
-    elif cfg['strategy'] == 'ContFedAvg': # TODO remove it
-        strategy_class = ContFedAvg
+    elif cfg['strategy'] == 'ContAvg': 
+        strategy_class = ContributionAvg
     elif cfg['strategy'] == 'ZkAvg':
         strategy_class = ZkAvg
     else:
-        raise BaseException("Strategy not recognized")
+        raise BaseException("Strategy not implemented")
 
 
     common_args = {
@@ -129,11 +126,6 @@ def get_strategy(
         'evaluate_metrics_aggregation_fn': get_evaluate_metrics_aggregation(cfg),
         
     }
-
-    # Add ContFedAvg-specific parameter if the strategy is ContFedAvg
-    if cfg['strategy'] == 'ContFedAvg':
-        common_args['top_k'] = cfg.get('top_k', 2)
-
 
     return strategy_class(**common_args)
 
