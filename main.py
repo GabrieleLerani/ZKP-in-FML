@@ -31,7 +31,7 @@ def main():
     cleanup_proofs()
 
     # 2. run simulation for different strategies
-    strategies = ["ZkAvg","ContAvg"]
+    strategies = ["ZkAvg","ContAvg","FedAvg"]
     for s in strategies:
         run_simulation(s)
 

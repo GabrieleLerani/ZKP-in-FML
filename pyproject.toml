@@ -49,9 +49,7 @@ batch_size = 32
 # dataset config for non_iid nodes
 iid_ratio = 0.7 # percentage of iid_node
 x_non_iid = 2 # number of labels of non_iid clients
-
-# config for dishonest clients
-dishonest_contribution = 10000000 
+dishonest = true # if true all non iid nodes will send a fake score
 
 # secaggplus config
 secaggplus = false
@@ -60,13 +58,13 @@ reconstruction_threshold = 2
 max_weight = 9000
 
 # train config
-gamma = 0.0
+gamma = 0.0 # weight of score
 device = "cpu"
 num_epochs = 1
 lr = 0.01
 
 # zk proof params
-scale = 1000 # used to scale floating value into fixed integers in zokrates
+scale = 1000 # used to scale floating value into fixed integers in zokrates, check if really needed
 beta = 1 # the importance to give variance
 thr = 500 # num of minimum label to have positive contribution
 
@@ -76,5 +74,5 @@ default = "local-simulation"
 [tool.flwr.federations.local-simulation]
 backend="ray"
 options.num-supernodes = 5
-options.backend.client-resources.num-cpus = 6 # each ClientApp assumes to use 6CPUs
+options.backend.client-resources.num-cpus = 6 # num of cpu used for each client up
 options.backend.client-resources.num-gpus = 0.0 # ratio of VRAM a ClientApp has access to

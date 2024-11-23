@@ -14,7 +14,7 @@ from torchmetrics import Accuracy
 from clientcontributionfl.models import Net, train, test
 
 # relative imports
-from clientcontributionfl.utils import compute_score
+from clientcontributionfl.utils import compute_score, forge_score_in_proof
 from clientcontributionfl import Zokrates
 
 
@@ -159,10 +159,12 @@ class ZkClient(NumPyClient):
             
             # add additional value
             if self.dishonest:
-                score = 0 #TODO score + self.config["dishonest_contribution"]
                 
+                forged_score = 10 
+                forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), forged_score)
 
-            params[f"score_{self.node_id}"] = score
+            
+
         else:
             # Train the model in subsequent rounds
             optimizer = torch.optim.SGD(self.model.parameters(), lr=config["lr"])

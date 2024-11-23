@@ -41,6 +41,8 @@ def client_fn(context: Context) -> Client:
         )
 
         iid_clients = num_partitions * config["iid_ratio"]
+        
+        dishonest = config["dishonest"]
 
         return ZkClient(
             node_id=str(node_id),
@@ -49,7 +51,7 @@ def client_fn(context: Context) -> Client:
             testloader=test_loader,
             partition_label_counts=partition_counts,
             num_classes=num_classes,
-            dishonest=partition_id >= iid_clients,
+            dishonest=partition_id >= iid_clients if dishonest else False,
             config=config
         ).to_client()
 
@@ -62,7 +64,8 @@ def client_fn(context: Context) -> Client:
         )
 
         iid_clients = num_partitions * config["iid_ratio"]
-        
+        dishonest = config["dishonest"]
+
         return ContributionClient(
             node_id=str(node_id),
             partition_id=partition_id,
@@ -70,7 +73,7 @@ def client_fn(context: Context) -> Client:
             testloader=test_loader,
             partition_label_counts=partition_counts,
             num_classes=num_classes,
-            dishonest=partition_id >= iid_clients, # set as many dishonest as non iid clients
+            dishonest=partition_id >= iid_clients if dishonest else False, # set as many dishonest as non iid clients
             config=config
         ).to_client()
     

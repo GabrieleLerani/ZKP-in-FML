@@ -52,9 +52,9 @@ class ContributionClient(FedAvgClient):
                 thr=self.thr
             )
 
-            # add additional value
+            # create a forged score
             if self.dishonest:
-                score = 0 #TODO score + self.config["dishonest_contribution"]
+                score = 0 
                 
 
             params[f"score_{self.node_id}"] = score

@@ -71,10 +71,13 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     alpha=config['alpha']
     x_non_iid = config["x_non_iid"]
     iid_ratio = config["iid_ratio"]
+    dishonest = config["dishonest"]
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
+    include_dishonest = (f"_dishonest" if dishonest else "")
+    include_sec_agg = ("SecAgg" if params['secaggplus'] else "")
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
     
@@ -83,8 +86,11 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
             f"_S={strategy}"
             f"_R={num_rounds}"
             f"_P={partitioner}"
-            f"_SecAgg={'On' if secaggplus else 'Off'}"
-            + include_alpha + include_x + include_iid_ratio
+            + include_sec_agg
+            + include_alpha 
+            + include_x 
+            + include_iid_ratio 
+            + include_dishonest
         )
         
         file_path = save_plot_path / f"history{file_suffix}.npy"
@@ -109,6 +115,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax2.set_xlabel("Rounds")
     ax2.set_ylabel("Loss")
     ax2.legend(loc="upper right")
+    ax2.set_ylim([0, 2.5])
 
     plt.tight_layout()
     
@@ -117,8 +124,11 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
         f"_strategies={'_'.join(strategies)}"
         f"_R={num_rounds}"
         f"_P={partitioner}"
-        f"_SecAgg={'On' if secaggplus else 'Off'}"
-        + include_alpha + include_x + include_iid_ratio
+        + include_sec_agg
+        + include_alpha 
+        + include_x 
+        + include_iid_ratio 
+        + include_dishonest
         + ".png"
     )
     plt.savefig(save_plot_path / plot_filename)

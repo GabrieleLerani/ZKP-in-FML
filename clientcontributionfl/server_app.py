@@ -49,7 +49,8 @@ def extract_run_params(config):
         "secaggplus": config.get("secaggplus", True),
         "alpha": config.get("alpha", 0.05),
         "x_non_iid": config.get("x_non_iid", 2),
-        "iid_ratio": config.get("iid_ratio", 0.5)
+        "iid_ratio": config.get("iid_ratio", 0.5),
+        "dishonest": config.get("dishonest", 0.5)
     }
 
 def create_legacy_context(context, num_rounds, strategy):
@@ -73,17 +74,23 @@ def save_history(history, params):
     alpha = params["alpha"]
     x_non_iid = params["x_non_iid"]
     iid_ratio = params["iid_ratio"]
+    dishonest = params["dishonest"]
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
+    include_dishonest = (f"_dishonest" if dishonest else "")
+    include_sec_agg = ("SecAgg" if params['secaggplus'] else "")
 
     file_suffix = (
         f"_S={params['strategy_name']}"
         f"_R={params['num_rounds']}"
         f"_P={params['distribution']}"
-        f"_SecAgg={'On' if params['secaggplus'] else 'Off'}"
-        + include_alpha + include_x + include_iid_ratio
+        + include_sec_agg
+        + include_alpha 
+        + include_x 
+        + include_iid_ratio 
+        + include_dishonest
         
     )
     np.save(

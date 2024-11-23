@@ -172,9 +172,8 @@ class ContributionAvg(FedAvg):
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
-        # do not filter when is the first round otherwise clients is empty
-        if server_round != 1:
-            clients = self._filter_clients(clients)
+        # filter clients based on score
+        clients = self._filter_clients(clients)
 
         # Return client/config pairs
         return [(client, evaluate_ins) for client in clients]

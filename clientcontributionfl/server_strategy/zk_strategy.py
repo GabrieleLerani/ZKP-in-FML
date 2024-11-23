@@ -19,12 +19,13 @@ from flwr.server.client_proxy import ClientProxy
 
 from typing import List, Tuple, Union, Optional, Dict
 from logging import INFO, DEBUG, WARNING
-from flwr.server.strategy.aggregate import weighted_loss_avg
 from functools import reduce
 import numpy as np
 from pprint import PrettyPrinter
-from ..zokrates_proof import *
+from clientcontributionfl import Zokrates
+from clientcontributionfl.utils import extract_score_from_proof
 from collections import defaultdict
+import os
 
 class ZkAvg(FedAvg):
     """
@@ -68,28 +69,16 @@ class ZkAvg(FedAvg):
                 key: [value[0], value[1] / total, value[2]] 
                 for key, value in self.client_data.items()
             }
-            # client_data = {}
-            # for key, value in self.client_data.items():
-            #     valid_proof = value[2]
-            #     if valid_proof:
-            #         value = [value[0], value[1] / total, valid_proof]
-            #         client_data[key] = value
-            
-            # self.client_data = client_data
+        
 
     def _aggregate_verificaiton_keys_and_scores(self, fit_metrics: List[Tuple[int, Dict[str, Scalar]]]):
         """Aggregates verification keys and scores."""
         
         for _, metrics in fit_metrics:
-
-            # Process each metric dictionary
             for key, value in metrics.items():
-                # Extract client_id from the key (format: "vrfkey_clientid" or "score_clientid")
                 client_id = key.split('_')[1]
-                if "vrfkey" in key:
-                    self.client_data[client_id][0] = value # path of the verification key
-                elif "score" in key:
-                    self.client_data[client_id][1] = value # integer score of client on its partition
+                self.client_data[client_id][0] = value # path of the verification key
+                self.client_data[client_id][1] = extract_score_from_proof(os.path.join(value, "proof.json"))
         
         log(INFO,"Verification keys and score aggregated")
 
@@ -105,10 +94,7 @@ class ZkAvg(FedAvg):
             # verify the proof is correct
             res = self.zk.verify_proof(vrk_key_path)
 
-            
-            log(INFO, f"proof result : {res}")
-            if "PASSED" in res:
-                log(INFO, f"setting to true") 
+            if "PASSED" in res:                
                 self.client_data[k][2] = True 
 
     def _filter_clients(self, clients: List[ClientProxy]) -> List[ClientProxy]:
@@ -121,15 +107,13 @@ class ZkAvg(FedAvg):
         for c in clients:
             score = self.client_data[c.cid][1]
             proof_is_valid = self.client_data[c.cid][2]
-            if score <= self.discarding_threshold and proof_is_valid:
+            # TODO just not select invalid clients, then use also score
+            if proof_is_valid:
                 filtered_clients.append(c)
-
+                
         return filtered_clients
 
-    def num_fit_clients(self, num_available_clients: int, fraction_fit: int) -> tuple[int, int]:
-        """Return the sample size and the required number of available clients."""
-        num_clients = int(num_available_clients * fraction_fit)
-        return max(num_clients, self.min_fit_clients), self.min_available_clients
+
 
     def aggregate_fit(
         self,
@@ -178,7 +162,7 @@ class ZkAvg(FedAvg):
         
         # TODO Sample clients, sample all if first round in order to collect verification keys
         sample_size, min_num_clients = self.num_fit_clients(
-            client_manager.num_available(), self.fraction_fit #if server_round == 1 else 0.3 # TODO
+            client_manager.num_available()
         )
 
         clients = client_manager.sample(
@@ -216,7 +200,7 @@ class ZkAvg(FedAvg):
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
-        # do not filter when is the first round otherwise clients is empty
+        # filter clients based on proof and score
         clients = self._filter_clients(clients)
 
         # Return client/config pairs

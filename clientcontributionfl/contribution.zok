@@ -19,12 +19,12 @@ def variance<N>(field[N] arr, field mean) -> field {
 }
     
 
-// Function to calculate label diversity (number of non-zero counts)
+// Function to calculate label diversity (number of different labels)
 def diversity<N>(field[N] arr, field thr) -> field {
     field mut div = 1;
     for u32 i in 0..N {
         
-        //assigns a +1 if client has at least gamma elements 
+        //assigns a +1 if client has at least thr elements 
         div = if arr[i] >= thr {div + 1} else {div};
 
     }
@@ -34,7 +34,7 @@ def diversity<N>(field[N] arr, field thr) -> field {
 
 // Main function to compute dataset score
 // Inputs: label counts, scale factor, beta (weight)
-def main(private field[10] counts, private field scale, private field beta, private field mean_val, private field thr, field pre_computed_score) -> field {
+def main(private field[10] counts, private field scale, private field beta, private field mean_val, private field thr, private field pre_computed_score) -> field {
     
     field total = sum(counts);
     field var = variance(counts, mean_val);

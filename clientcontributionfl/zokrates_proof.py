@@ -89,7 +89,7 @@ class Zokrates:
         """
         zok_file = "../../clientcontributionfl/contribution.zok "
         
-        self._run_command(f"zokrates compile -i {zok_file} --debug")
+        self._run_command(f"zokrates compile -i {zok_file}")
         self._run_command("zokrates setup")
 
     # TODO consider to pass parameters as dict
@@ -132,18 +132,18 @@ class Zokrates:
 
 # Example usage
 if __name__ == "__main__":
-    counts = [30000, 1000, 60000, 1000, 40000, 50, 30, 20, 9000, 4000]
-    scale = 1000
+    counts = [11, 11, 38]
+    scale = 1
     beta = 1
     mean_val = int(sum(counts) / len(counts))
-    gamma = 100
-    working_dir = os.path.join("proofs", f"client_12")
+    thr = 10
+    #working_dir = os.path.join("proofs", f"client_12")
     
-    score = compute_score(counts=counts, scale=scale, beta=beta, gamma=gamma)
+    score = compute_score(counts=counts, scale=scale, beta=beta, thr=thr)
+    print(score)
+    # zokrates = Zokrates(working_dir)
+    # zokrates.setup()
     
-    zokrates = Zokrates(working_dir)
-    zokrates.setup()
-    
-    proof = zokrates.generate_proof(counts, scale, beta, mean_val, gamma, score)
-    verification = zokrates.verify_proof()
-    print(verification)
+    # proof = zokrates.generate_proof(counts, scale, beta, mean_val, gamma, score)
+    # verification = zokrates.verify_proof()
+    # print(verification)

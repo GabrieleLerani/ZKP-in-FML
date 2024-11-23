@@ -39,7 +39,7 @@ def get_on_fit_config(cfg: Dict[str, any]):
         
         # learning rate decay of 0.995 per round
         initial_lr = cfg.get("lr", 0.1)
-        lr = initial_lr * (0.995 ** server_round)
+        lr = initial_lr * (0.995 ** server_round) if server_round > 1 else initial_lr
         
         return {
             "server_round": server_round,
@@ -79,7 +79,7 @@ def get_evaluate_fn(
         
         
         # evaluate global model every round
-        if server_round % 1 == 0: #== total_rounds:
+        if server_round > 1: #== total_rounds:
             
             model = Net(num_classes)
 
