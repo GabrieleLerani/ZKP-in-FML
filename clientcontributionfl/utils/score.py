@@ -13,7 +13,7 @@ def compute_score(counts: List[int], scale: int, beta: int, thr: int) -> int:
 
     Args:
         counts (List[int]): A list of integers representing the counts of contributions from a client.
-        scale (int): A scaling factor used to convert the diversity measure into a comparable scale.
+        scale (int): A scaling factor used to weight the diversity.
         beta (int): A weight factor that determines the importance of variance in the score calculation.
         thr (int): A threshold value used to determine the diversity of the counts.
 
@@ -45,7 +45,8 @@ def compute_score(counts: List[int], scale: int, beta: int, thr: int) -> int:
     """
     total = sum(counts)
     mean_val = total // len(counts)
-    variance = sum((count - mean_val) ** 2 for count in counts)
+    #variance = sum((count - mean_val) ** 2 for count in counts)
+    variance = sum(abs(count - mean_val) for count in counts)
     diversity = sum(1 for count in counts if count >= thr) + 1
     score = (beta * variance) + (diversity * scale)
     return int(score)

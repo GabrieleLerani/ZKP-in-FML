@@ -79,7 +79,7 @@ def get_evaluate_fn(
         
         
         # evaluate global model every round
-        if server_round > 1: #== total_rounds:
+        if server_round >= 1: #== total_rounds:
             
             model = Net(num_classes)
 

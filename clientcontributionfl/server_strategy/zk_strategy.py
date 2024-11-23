@@ -52,7 +52,7 @@ class ZkAvg(FedAvg):
         Normalize the scores so they sum up to 1.
         Returns a dictionary with the same keys but normalized values.
         """
-
+        # TODO check if it is ok the following
         # compute the sum of all the scores for each client.
         # take score only if client has valid proof
         total = sum(self.client_data[k][1] for k in self.client_data if self.client_data[k][2])
@@ -112,8 +112,6 @@ class ZkAvg(FedAvg):
                 filtered_clients.append(c)
                 
         return filtered_clients
-
-
 
     def aggregate_fit(
         self,

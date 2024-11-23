@@ -81,28 +81,36 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
     
+    file_suffix = (
+        f"R={num_rounds}"
+        f"_P={partitioner}"
+        + include_sec_agg
+        + include_alpha 
+        + include_x 
+        + include_iid_ratio 
+        + include_dishonest
+    )
+
+    result_path = save_plot_path / Path("simulation") / Path(file_suffix.lstrip('_'))
+
     for strategy in strategies:
-        file_suffix = (
-            f"_S={strategy}"
-            f"_R={num_rounds}"
-            f"_P={partitioner}"
-            + include_sec_agg
-            + include_alpha 
-            + include_x 
-            + include_iid_ratio 
-            + include_dishonest
-        )
         
-        file_path = save_plot_path / f"history{file_suffix}.npy"
+        file_path = result_path / f"history_S={strategy}.npy"
         
         history = np.load(file_path, allow_pickle=True).item()
+        
+        # print(strategy)
+        # print("\n")
+        # print(history)
+        # print("\n\n")
 
-        # Plot accuracy
+        # Plot centralized accuracy
         rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
         ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=strategy)
 
-        # Plot loss
-        rounds_loss, values_loss = zip(*history.losses_distributed)
+        # Plot centralized loss
+        rounds_loss, values_loss = zip(*history.losses_centralized)
+        #print(rounds_loss, strategy)
         ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=strategy)
 
     ax1.set_title("Centralized Validation Accuracy - MNIST")
@@ -115,23 +123,23 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax2.set_xlabel("Rounds")
     ax2.set_ylabel("Loss")
     ax2.legend(loc="upper right")
-    ax2.set_ylim([0, 2.5])
+    ax2.set_ylim([0, 3.5])
 
     plt.tight_layout()
     
-    plot_filename = (
-        f"comparison"
-        f"_strategies={'_'.join(strategies)}"
-        f"_R={num_rounds}"
-        f"_P={partitioner}"
-        + include_sec_agg
-        + include_alpha 
-        + include_x 
-        + include_iid_ratio 
-        + include_dishonest
-        + ".png"
-    )
-    plt.savefig(save_plot_path / plot_filename)
+    # plot_filename = (
+    #     f"comparison.png"
+    #     f"_strategies={'_'.join(strategies)}"
+    #     f"_R={num_rounds}"
+    #     f"_P={partitioner}"
+    #     + include_sec_agg
+    #     + include_alpha 
+    #     + include_x 
+    #     + include_iid_ratio 
+    #     + include_dishonest
+    #     + ".png"
+    # )
+    plt.savefig(result_path / "comparison.png")
     plt.close()
 
 def plot_metric_from_history(

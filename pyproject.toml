@@ -29,12 +29,12 @@ serverapp = "clientcontributionfl.server_app:app"
 clientapp = "clientcontributionfl.client_app:app"
 
 [tool.flwr.app.config]
-num_rounds = 10
+num_rounds = 2
 fraction_fit = 0.3
 fraction_evaluate = 0.1
 num_clients_per_round_fit = 2
 num_clients_per_round_eval = 2
-save_path = "clientcontributionfl/plots"
+save_path = "results"
 strategy = "ZkAvg"
 
 
@@ -64,9 +64,9 @@ num_epochs = 1
 lr = 0.01
 
 # zk proof params
-scale = 1000 # used to scale floating value into fixed integers in zokrates, check if really needed
+scale = 1000 # weight of the diversity score
 beta = 1 # the importance to give variance
-thr = 500 # num of minimum label to have positive contribution
+thr = 400 # num of minimum label to have positive contribution
 
 [tool.flwr.federations]
 default = "local-simulation"

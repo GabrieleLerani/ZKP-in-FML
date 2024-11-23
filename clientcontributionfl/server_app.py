@@ -70,30 +70,42 @@ def create_workflow(params):
     return DefaultWorkflow(fit_workflow=fit_workflow)
 
 def save_history(history, params):
+    num_rounds= params['num_rounds']
     partitioner = params["distribution"]
+    secaggplus=params['secaggplus']
     alpha = params["alpha"]
     x_non_iid = params["x_non_iid"]
     iid_ratio = params["iid_ratio"]
     dishonest = params["dishonest"]
+    strategy = params["strategy_name"]
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
     include_dishonest = (f"_dishonest" if dishonest else "")
-    include_sec_agg = ("SecAgg" if params['secaggplus'] else "")
-
+    include_sec_agg = ("SecAgg" if secaggplus else "")
+    
     file_suffix = (
-        f"_S={params['strategy_name']}"
-        f"_R={params['num_rounds']}"
-        f"_P={params['distribution']}"
+        f"R={num_rounds}"
+        f"_P={partitioner}"
         + include_sec_agg
         + include_alpha 
         + include_x 
         + include_iid_ratio 
         + include_dishonest
-        
     )
+
+    save_dir = Path(params['save_path']) / Path("simulation") / Path(file_suffix.lstrip('_'))
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save the history in the new directory
     np.save(
-        Path(params['save_path']) / Path("results") / Path(f"history{file_suffix}"), 
+        save_dir / Path(f"history_S={strategy}.npy"),
         history
     )
+
+    # TODO check if it works
+    # np.save(
+    #     Path(params['save_path']) / Path("simulation") / Path(f"history{file_suffix}"), 
+    #     history
+    # )

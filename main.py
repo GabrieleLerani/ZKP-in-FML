@@ -38,9 +38,10 @@ def main():
     # 3. plot result
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
     
-    save_path = Path("clientcontributionfl/plots/results")
+    #save_path = Path("clientcontributionfl/plots/results")
+    results_path = Path(config["save_path"]) 
     plot_comparison_from_files(
-        save_path,
+        results_path,
         config,
         strategies=strategies
     )

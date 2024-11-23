@@ -1,31 +1,42 @@
-# ZKP-in-FML: Zero Knowledge Proof for Client Contribution in Federated Machine Learning
+# Privacy preserving contribution in Federated Learning
 
-This project is part of a research thesis on Zero Knowledge Proof to prove client contribution in Federated Machine Learning. It implements a Flower-based Federated Learning system using FedAvg and SecAgg+ protocol.
+This project implements strategies for verifying and enforcing honest client contribution reporting in Federated Learning using the Flower framework. It includes both a basic contribution scoring system and a zero-knowledge proof verification approach.
 
 ## Project Overview
 
-This project, named "clientcontributionfl", is a Federated Learning implementation that focuses on:
+The project implements three main strategies for federated learning:
 
-1. Using the Flower framework for Federated Learning
-2. Implementing FedAvg (Federated Averaging) strategy
-3. Incorporating SecAgg+ protocol for secure aggregation
-4. Using the MNIST dataset for training
-5. Implementing a Dirichlet distribution for non-IID data partitioning
+1. **FedAvg**: Standard Federated Averaging algorithm (baseline)
+2. **ContAvg**: Contribution-based client selection where clients report dataset quality scores
+3. **ZkAvg**: Zero-knowledge proof verification of client contributions using Zokrates
 
-## Features
+### Key Features
 
-- Federated Learning with custom strategy strategy
-- Secure Aggregation using SecAgg+ protocol
-- Zero knowledge proofs
+- Custom client contribution scoring based on dataset characteristics
+- Zero-knowledge proof verification using Zokrates
+- Support for simulating honest/dishonest clients
+- Custom data partitioning for IID and non-IID distribution testing
+- Comparative analysis between strategies using centralized accuracy metrics
 
 ## Project Structure
 
-- `clientcontributionfl/`: Main package directory
-  - `server_app.py`: Server-side logic
-  - `client_app.py`: Client-side logic
-  - `dataset.py`:    Dataset loading and partitioning
-  - `model.py`:      pytorch model
-  - `strategy.py`:   Custom strategy that extends FedAvg
+clientcontributionfl/
+├── client_strategy/
+│ ├── fedavg_client.py # Base FedAvg client implementation
+│ ├── contribution_client.py # Client with contribution scoring
+│ └── zkavg_client.py # Client with ZK proof generation
+├── server_strategy/
+│ ├── contribution_strategy.py # Server-side contribution verification
+│ └── zk_strategy.py # Server-side ZK proof verification
+├── utils/
+│ ├── file_utils.py # Proof file handling utilities
+│ ├── plot_util.py # Visualization utilities
+│ └── score.py # Contribution scoring functions
+├── dataset.py # Dataset loading and partitioning
+├── models.py # Neural network model definitions
+├── server_app.py # Server configuration
+├── client_app.py # Client configuration
+└── zokrates_proof.py # Zokrates integration
   
 
 ## Installation
@@ -47,6 +58,40 @@ This project, named "clientcontributionfl", is a Federated Learning implementati
    pip install -e .
    ```
 
+4. Install ZoKrates for Zero-Knowledge proof:
+   ```
+   curl -LSfs get.zokrat.es | sh
+   ```
+
+## Implementation Details
+
+### ContAvg Strategy
+Clients compute a score based on their local dataset distribution and submit it to the server. The server uses these scores to prioritize client selection during training. However, dishonest clients can submit fake scores to increase their selection probability.
+
+### ZkAvg Strategy
+To prevent score manipulation, clients must provide zero-knowledge proofs of their contribution using Zokrates. The process works as follows:
+
+1. Each client compiles a `.zok` circuit file
+2. Client provides private input (e.g., [10,30,100] representing label distribution)
+3. Circuit computes the contribution score and verifies it matches the claimed value
+4. Server verifies the proof before allowing client participation
+
+Note: Due to Flower's limitations in file transfer, the implementation uses shared working directory paths between clients and server for proof verification.
+
+### Testing Setup
+- Custom partitioner creating both IID and non-IID client distributions
+- Simulation of dishonest non-IID clients submitting fake scores
+- Comparative analysis against standard FedAvg
+- Centralized accuracy evaluation using a pre-defined test dataset
+
+## Tools and Dependencies
+
+- Flower (FL framework)
+- Zokrates (Zero-knowledge proof system)
+- PyTorch (Deep learning)
+- Python 3.8+
+
+
 ## Configuration
 
 The project configuration is managed through the `pyproject.toml` file. Key configurations include:
@@ -66,7 +111,7 @@ You can modify these parameters in the `pyproject.toml` file under the `[tool.fl
 
 To run the Federated Learning simulation:
    ```
-   flwr run .
+   python main.py
    ```
 You can change the running configuration and the number of clients and round. Check the `pyproject.toml` for other settings:
 ```
