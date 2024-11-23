@@ -77,7 +77,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
     include_dishonest = (f"_dishonest" if dishonest else "")
-    include_sec_agg = ("SecAgg" if params['secaggplus'] else "")
+    include_sec_agg = ("SecAgg" if secaggplus else "")
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
     
