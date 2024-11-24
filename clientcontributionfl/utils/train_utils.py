@@ -5,6 +5,8 @@ from pathlib import Path
 from flwr.server.history import History
 from typing import Optional, List
 from flwr.common.config import get_project_config
+from flwr.common import (NDArrays)
+from functools import reduce
 
 def load_history(file_path: str):
     loaded_array = np.load(file_path, allow_pickle=True).item()
@@ -182,6 +184,24 @@ def read_scores(plots_folder='plots/scores'):
             distribution_type = file_name.replace('.npy', '')
             scores[distribution_type] = np.load(os.path.join(plots_folder, file_name), allow_pickle=True).item()
     return scores
+
+
+def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
+    """Compute weighted average."""
+    # Calculate the total number of examples used during training
+    num_examples_total = sum(num_examples for (_, num_examples) in results)
+
+    # Create a list of weights, each multiplied by the related number of examples
+    weighted_weights = [
+        [layer * num_examples for layer in weights] for weights, num_examples in results
+    ]
+
+    # Compute average weights of each layer
+    weights_prime: NDArrays = [
+        reduce(np.add, layer_updates) / num_examples_total
+        for layer_updates in zip(*weighted_weights)
+    ]
+    return weights_prime
 
 
 

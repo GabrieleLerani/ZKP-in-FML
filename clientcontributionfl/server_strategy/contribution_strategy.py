@@ -3,11 +3,8 @@ import flwr as fl
 from flwr.server.strategy import FedAvg
 from flwr.common import (
     EvaluateIns,
-    EvaluateRes,
     FitIns,
     FitRes,
-    MetricsAggregationFn,
-    NDArrays,
     Parameters,
     Scalar,
     ndarrays_to_parameters,
@@ -18,15 +15,13 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 
 from typing import List, Tuple, Union, Optional, Dict
-from logging import INFO, DEBUG, WARNING
-from flwr.server.strategy.aggregate import weighted_loss_avg
-from functools import reduce
-import numpy as np
+from logging import INFO
 from pprint import PrettyPrinter
-from clientcontributionfl import Zokrates
-from collections import defaultdict
 
-# TODO remove all zk verification
+from collections import defaultdict
+from clientcontributionfl.utils import aggregate
+
+
 class ContributionAvg(FedAvg):
     """
     
@@ -178,21 +173,3 @@ class ContributionAvg(FedAvg):
         # Return client/config pairs
         return [(client, evaluate_ins) for client in clients]
         
-
-
-def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
-    """Compute weighted average."""
-    # Calculate the total number of examples used during training
-    num_examples_total = sum(num_examples for (_, num_examples) in results)
-
-    # Create a list of weights, each multiplied by the related number of examples
-    weighted_weights = [
-        [layer * num_examples for layer in weights] for weights, num_examples in results
-    ]
-
-    # Compute average weights of each layer
-    weights_prime: NDArrays = [
-        reduce(np.add, layer_updates) / num_examples_total
-        for layer_updates in zip(*weighted_weights)
-    ]
-    return weights_prime

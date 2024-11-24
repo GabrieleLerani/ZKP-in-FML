@@ -98,34 +98,3 @@ def compute_contribution(loss: float, dataset_score: float, gamma: float = 0.5) 
 
     return (1 - gamma) * dataset_score
     #return gamma * inverse_loss + (1 - gamma) * dataset_score
-
-
-
-def plot_contribution_function(L_range, d_fixed, gammas):
-    plt.figure(figsize=(10, 6))
-
-    for gamma in gammas:
-        contributions = [compute_contribution(L, d_fixed, gamma) for L in L_range]
-        plt.plot(L_range, contributions, label=f'γ = {gamma}')
-        
-
-    plt.xlabel('Loss (L)')
-    plt.ylabel('Contribution')
-    plt.title(f'Contribution vs Loss (Fixed Dataset Score d = {d_fixed})')
-    plt.legend()
-    plt.grid(True)
-    plt.xlim(0.001)  # Set x-axis limit from 0 to 3 to show full range of loss
-    plt.ylim(0, 1.1)  # Set y-axis limit from 0 to 1.1 to show full range of contribution
-
-    plt.tight_layout()
-    plt.show()
-
-    
-
-# # Parameters
-# L_values = np.linspace(0.001, 20, 1000)
-# d_fixed = 0.75  # Fixed dataset score
-# gammas = [0.1 ,0.5, 0.9]
-
-# # Plotting
-# plot_contribution_function(L_values, d_fixed, gammas)

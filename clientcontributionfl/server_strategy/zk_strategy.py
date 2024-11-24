@@ -18,13 +18,14 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 
 from typing import List, Tuple, Union, Optional, Dict
-from logging import INFO, DEBUG, WARNING
+from logging import INFO
 from functools import reduce
 import numpy as np
 from pprint import PrettyPrinter
 from clientcontributionfl import Zokrates
-from clientcontributionfl.utils import extract_score_from_proof
+from clientcontributionfl.utils import extract_score_from_proof, aggregate
 from collections import defaultdict
+
 import os
 
 class ZkAvg(FedAvg):
@@ -45,17 +46,14 @@ class ZkAvg(FedAvg):
         super().__init__(*args, **kwargs)
         self.client_data = defaultdict(lambda: ["", 1, False])
         self.zk: Zokrates = Zokrates()
-        self.discarding_threshold: float = selection_thr  # TODO automatically compute this threshold
+        self.discarding_threshold: float = selection_thr  
 
     def _normalize_scores(self):
         """
         Normalize the scores so they sum up to 1.
         Returns a dictionary with the same keys but normalized values.
         """
-        # TODO check if it is ok the following
-        # compute the sum of all the scores for each client.
-        # take score only if client has valid proof
-        total = sum(self.client_data[k][1] for k in self.client_data)# if self.client_data[k][2])
+        total = sum(self.client_data[k][1] for k in self.client_data)
         # edge cases
         if total == 0:
             equal_weight = 1.0 / len(self.client_data)
@@ -154,11 +152,10 @@ class ZkAvg(FedAvg):
         if self.on_fit_config_fn is not None:
             # Custom fit config function provided
             config = self.on_fit_config_fn(server_round)
-        # TODO fit_ins is only one but you can create a different one
-        # for each client, could be useful for client clustering.
+        
         fit_ins = FitIns(parameters, config)
         
-        # TODO Sample clients, sample all if first round in order to collect verification keys
+        
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
@@ -205,20 +202,3 @@ class ZkAvg(FedAvg):
         return [(client, evaluate_ins) for client in clients]
         
 
-
-def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
-    """Compute weighted average."""
-    # Calculate the total number of examples used during training
-    num_examples_total = sum(num_examples for (_, num_examples) in results)
-
-    # Create a list of weights, each multiplied by the related number of examples
-    weighted_weights = [
-        [layer * num_examples for layer in weights] for weights, num_examples in results
-    ]
-
-    # Compute average weights of each layer
-    weights_prime: NDArrays = [
-        reduce(np.add, layer_updates) / num_examples_total
-        for layer_updates in zip(*weighted_weights)
-    ]
-    return weights_prime

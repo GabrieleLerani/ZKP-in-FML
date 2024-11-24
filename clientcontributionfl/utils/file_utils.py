@@ -128,3 +128,5 @@ def _check_iid_ratio(iid_ratio: float):
     if not 0.0 <= iid_ratio <= 1.0:
         raise ValueError("IID ratio must be between 0.0 and 1.0 (inclusive)")
     return True
+
+
