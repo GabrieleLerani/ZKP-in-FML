@@ -1,4 +1,4 @@
-# Privacy preserving contribution in Federated Learning
+# Privacy preserving contribution in Federated Learning 🔐
 
 This project implements strategies for verifying and enforcing honest client contribution reporting in Federated Learning using the Flower framework. It includes both a basic contribution scoring system and a zero-knowledge proof verification approach.
 
