@@ -82,6 +82,45 @@ pyproject.toml # configuration file
    ```
 
 ## Implementation Details
+[`ContAvg`](clientcontributionfl/server_strategy/contribution_strategy.py) and [`ZkAvg`](clientcontributionfl/server_strategy/zk_strategy.py) are very similar strategies: the general idea is to compute a score which represents client contribution to the global model training. However when client are dishonest they can submit a fake score and increase the likelihood of being selected for training. Zero-knowledge proofs guarantee to discard malicious clients and that's the main contribution of `ZkAvg`. Trivially, when all actor are honest `ZkAvg` and `ContAvg` are the same algorithm.
+
+### Score contribution
+Implement a function to evaluate the dataset quality is not trivial, especially if the computation must be executed in a ZoKrates program, where all variables are defined as elements of a prime field, which means no floating number operations are permitted. Therefore one of the simplest idea I had is to quantify the variance and the diversity of labels on each partition.
+
+The [`compute_score`](clientcontributionfl/utils/score.py) function, which evaluates the quality of a client's dataset based on its label distribution considers two main factors:
+
+1. **Variance**: Measures how spread out the label counts are from their mean value. Higher variance indicates less balanced data.
+2. **Diversity**: Counts how many labels appear above a certain threshold. Higher diversity indicates more representative data.
+
+The score is calculated using the formula:
+```python
+score = (beta * variance) + (diversity * scale)
+```
+
+Where:
+- `counts`: List of integers representing the count of each label in the client's dataset
+- `scale`: Scaling factor to weight the diversity component
+- `beta`: Weight factor for the variance component
+- `thr`: Threshold value to determine significant label presence
+
+For example:
+```python
+counts = [100, 200, 100]  # Label distribution
+scale = 1000  # Scaling factor
+beta = 1      # Variance weight
+thr = 100     # Threshold for counting diverse labels
+score = compute_score(counts, scale, beta, thr)  # Returns weighted score
+print(scores)
+10667
+```
+
+A high score indicates:
+- Uneven distribution of labels (high variance)
+- Good representation of multiple classes above threshold (high diversity)
+
+A low score indicates:
+- More uniform distribution of labels (low variance)
+- Few classes represented above threshold (low diversity)
 
 ### ContAvg Strategy
 Clients compute a score based on their local dataset distribution and submit it to the server. The server uses these scores to prioritize client selection during training. However, dishonest clients can submit fake scores to increase their selection probability.
@@ -89,15 +128,15 @@ Clients compute a score based on their local dataset distribution and submit it 
 ### ZkAvg Strategy
 To prevent score manipulation, clients must provide zero-knowledge proofs of their contribution using Zokrates. The process works as follows:
 
-1. Each client compiles a [`contribution.zok`](clientcontributionfl/contribution.zok)  circuit file
-2. Client provides private input (e.g., [40,30,100] representing label distribution)
-3. Circuit computes the contribution score and verifies it matches the claimed value
-4. Server verifies the proof before allowing client participation
+1. Each client compiles a [`contribution.zok`](clientcontributionfl/contribution.zok) circuit file
+2. Client provides private input (e.g., [40,30,100] representing label distribution) and their score as witness.
+3. Circuit computes the contribution score and verifies it matches the claimed value.
+4. Server verifies the proof before allowing client participation.
 
 Note: Due to Flower's limitations in file transfer, the implementation uses shared working directory paths between clients and server for proof verification.
 
 ### Custom partitioner
-The beforementioned strategies are well suited whene data are not IID between clients. Flower already comes with many way partitioner (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called [`LabelBasedPartitioner`](clientcontributionfl/custom_partitioner.py).
+The beforementioned strategies are well suited whene data are not IID between clients. Flower already comes with many partitioners (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called [`LabelBasedPartitioner`](clientcontributionfl/custom_partitioner.py).
 
 The `LabelBasedPartitioner` allows you to specify:
 - `num_partitions`: Total number of clients/partitions
@@ -127,12 +166,9 @@ The last function outputs the following result:
 ![partitioner_iid_non_iid](https://github.com/user-attachments/assets/2170f1e3-0b24-431d-bb7b-847acc67723b)
 
 
-
 ### Testing Setup
-- Custom partitioner creating both IID and non-IID client distributions
-- Simulation of dishonest non-IID clients submitting fake scores
-- Comparative analysis against standard FedAvg
-- Centralized accuracy evaluation using a pre-defined test dataset
+I tested on MNIST dataset with 10 clients for 10 rounds. The main metrics are the centralized accuracy and loss. One interesting case is when non-IID clients submit fake scores, under this setting is expected that `ZkAvg` achieves better accuracy than `ContAvg`.
+To represent non-IID clients I used the `LabelBasedPartitioner` with `x=2` and `iid_ratio=0.7`
 
 ## Configuration
 
@@ -142,7 +178,7 @@ The project configuration is managed through the `pyproject.toml` file. Key conf
 - Fraction of clients for fitting and evaluation: 100%
 - Number of clients per round: 1
 - Dataset: MNIST
-- Distribution: Dirichlet (α = 0.03)
+- Distribution: "iid_and_non_iid" # Is the partitioner type
 - Batch size: 10
 - SecAgg+ parameters: 3 shares, reconstruction threshold of 2
 - Training parameters: learning rate 0.1, 2 epochs per round
@@ -158,5 +194,4 @@ To run the Federated Learning simulation:
 You can override other configurations parameters (learning rate, batch size etc.)directly changing `pyproject.toml`.
 
 ## Results
-
 The results of the training, including accuracy scores and any generated plots, will be saved in the `results/` directory.
