@@ -136,7 +136,7 @@ To prevent score manipulation, clients must provide zero-knowledge proofs of the
 Note: Due to Flower's limitations in file transfer, the implementation uses shared working directory paths between clients and server for proof verification.
 
 ### Custom partitioner
-The beforementioned strategies are well suited whene data are not IID between clients. Flower already comes with many partitioners (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called [`LabelBasedPartitioner`](clientcontributionfl/custom_partitioner.py).
+The beforementioned strategies are well suited when data are not IID between clients. Flower already comes with many partitioners (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called [`LabelBasedPartitioner`](clientcontributionfl/custom_partitioner.py).
 
 The `LabelBasedPartitioner` allows you to specify:
 - `num_partitions`: Total number of clients/partitions
