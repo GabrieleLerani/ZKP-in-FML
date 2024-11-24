@@ -19,25 +19,43 @@ The project tests three main strategies for federated learning:
 - Comparative analysis between strategies using centralized accuracy metrics
 
 ## Project Structure
-
+```
 clientcontributionfl/
-├── client_strategy/
-│ ├── fedavg_client.py # Base FedAvg client implementation
-│ ├── contribution_client.py # Client with contribution scoring
-│ └── zkavg_client.py # Client with ZK proof generation
-├── server_strategy/
-│ ├── contribution_strategy.py # Server-side contribution verification
-│ └── zk_strategy.py # Server-side ZK proof verification
-├── utils/
-│ ├── file_utils.py # Proof file handling utilities
-│ ├── plot_util.py # Visualization utilities
-│ └── score.py # Contribution scoring functions
-├── dataset.py # Dataset loading and partitioning
-├── models.py # Neural network model definitions
-├── server_app.py # Server configuration
-├── client_app.py # Client configuration
-└── zokrates_proof.py # Zokrates integration
-  
+  ├── client_strategy/
+  │ └── *.py # ZkAvg, ContAvg, FedAvg standard clients
+  ├── server_strategy/
+  │ └── *.py # server strategies like ZkAvg and ContAvg
+  ├── models/
+  │ └── *.py # Neural network models and training functions
+  ├── utils/
+  │ └── *.py # Many utilities
+  ├── dataset.py # Dataset loading and partitioning
+  ├── custom_partitioner.py # label based partitioner as described below
+  ├── server_utils.py # server functions used during training
+  ├── server_app.py # Server configuration
+  ├── client_app.py # Client configuration
+  ├── zokrates_proof.py # Class to interact with zokrates tool
+  └── contribution.zok # zokrates file to prove contribution
+
+results/
+  ├── label_dist/
+  │ └── *.png # many plots of different partitioner
+  └── simulation/ # simultions result for different configurations
+
+notebook/
+  └── *.ipynb # notebook with some example, still in progress
+
+main.py # Entry point to run simulations
+pyproject.toml # configuration file
+
+```
+
+## Tools and Dependencies
+
+- Flower (FL framework)
+- Zokrates (Zero-knowledge proof system)
+- PyTorch (Deep learning)
+- Python 3.8+
 
 ## Installation
 
@@ -71,13 +89,15 @@ Clients compute a score based on their local dataset distribution and submit it 
 ### ZkAvg Strategy
 To prevent score manipulation, clients must provide zero-knowledge proofs of their contribution using Zokrates. The process works as follows:
 
-1. Each client compiles a `contribution.zok` circuit file
+1. Each client compiles a [`contribution.zok`](clientcontributionfl/contribution.zok)  circuit file
 2. Client provides private input (e.g., [40,30,100] representing label distribution)
 3. Circuit computes the contribution score and verifies it matches the claimed value
 4. Server verifies the proof before allowing client participation
 
+Note: Due to Flower's limitations in file transfer, the implementation uses shared working directory paths between clients and server for proof verification.
+
 ### Custom partitioner
-The beforementioned strategies are well suited whene data are not IID between clients. Flower already comes with many way partitioner (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called `LabelBasedPartitioner`.
+The beforementioned strategies are well suited whene data are not IID between clients. Flower already comes with many way partitioner (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called [`LabelBasedPartitioner`](clientcontributionfl/custom_partitioner.py).
 
 The `LabelBasedPartitioner` allows you to specify:
 - `num_partitions`: Total number of clients/partitions
@@ -103,23 +123,16 @@ fig, ax, df = plot_label_distributions(
     legend=True,
 )
 ```
+The last function outputs the following result:
+![partitioner_iid_non_iid](https://github.com/user-attachments/assets/2170f1e3-0b24-431d-bb7b-847acc67723b)
 
 
-Note: Due to Flower's limitations in file transfer, the implementation uses shared working directory paths between clients and server for proof verification.
 
 ### Testing Setup
 - Custom partitioner creating both IID and non-IID client distributions
 - Simulation of dishonest non-IID clients submitting fake scores
 - Comparative analysis against standard FedAvg
 - Centralized accuracy evaluation using a pre-defined test dataset
-
-## Tools and Dependencies
-
-- Flower (FL framework)
-- Zokrates (Zero-knowledge proof system)
-- PyTorch (Deep learning)
-- Python 3.8+
-
 
 ## Configuration
 
