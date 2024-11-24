@@ -2,6 +2,21 @@
 
 This project implements strategies for verifying and enforcing honest client contribution reporting in Federated Learning using the Flower framework. It includes both a basic contribution scoring system and a zero-knowledge proof verification approach.
 
+## Table of Contents 📑
+- [Project Overview](#project-overview-)
+- [Project Structure](#project-structure-)
+- [Tools and Dependencies](#tools-and-dependencies-%EF%B8%8F)
+- [Installation](#installation-%EF%B8%8F)
+- [Implementation Details](#implementation-details-)
+  - [Score contribution](#score-contribution-)
+  - [ContAvg Strategy](#contavg-strategy-)
+  - [ZkAvg Strategy](#zkavg-strategy-)
+  - [Custom partitioner](#custom-partitioner-)
+  - [Testing Setup](#testing-setup-)
+- [Configuration](#configuration-%EF%B8%8F)
+- [Running simulation](#running-simulation-%EF%B8%8F)
+- [Results](#results-)
+
 ## Project Overview 🎯
 
 The project tests three main strategies for federated learning:
