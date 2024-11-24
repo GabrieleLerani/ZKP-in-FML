@@ -2,7 +2,7 @@
 
 This project implements strategies for verifying and enforcing honest client contribution reporting in Federated Learning using the Flower framework. It includes both a basic contribution scoring system and a zero-knowledge proof verification approach.
 
-## Project Overview
+## Project Overview 🎯
 
 The project tests three main strategies for federated learning:
 
@@ -18,7 +18,7 @@ The project tests three main strategies for federated learning:
 - Custom data partitioning for IID and non-IID distribution testing
 - Comparative analysis between strategies using centralized accuracy metrics
 
-## Project Structure
+## Project Structure 📁
 ```
 clientcontributionfl/
   ├── client_strategy/
@@ -50,14 +50,14 @@ pyproject.toml # configuration file
 
 ```
 
-## Tools and Dependencies
+## Tools and Dependencies 🛠️
 
 - Flower (FL framework)
 - Zokrates (Zero-knowledge proof system)
 - PyTorch (Deep learning)
 - Python 3.8+
 
-## Installation
+## Installation ⚙️
 
 1. Clone the repository:
    ```
@@ -81,10 +81,10 @@ pyproject.toml # configuration file
    curl -LSfs get.zokrat.es | sh
    ```
 
-## Implementation Details
+## Implementation Details 🔍
 [`ContAvg`](clientcontributionfl/server_strategy/contribution_strategy.py) and [`ZkAvg`](clientcontributionfl/server_strategy/zk_strategy.py) are very similar strategies: the general idea is to compute a score which represents client contribution to the global model training. However when client are dishonest they can submit a fake score and increase the likelihood of being selected for training. Zero-knowledge proofs guarantee to discard malicious clients and that's the main contribution of `ZkAvg`. Trivially, when all actor are honest `ZkAvg` and `ContAvg` are the same algorithm.
 
-### Score contribution
+### Score contribution 
 Implement a function to evaluate the dataset quality is not trivial, especially if the computation must be executed in a ZoKrates program, where all variables are defined as elements of a prime field, which means no floating number operations are permitted. Therefore one of the simplest idea I had is to quantify the variance and the diversity of labels on each partition.
 
 The [`compute_score`](clientcontributionfl/utils/score.py) function, which evaluates the quality of a client's dataset based on its label distribution considers two main factors:
@@ -170,7 +170,7 @@ The last function outputs the following result:
 I tested on MNIST dataset with 10 clients for 10 rounds. The main metrics are the centralized accuracy and loss. One interesting case is when non-IID clients submit fake scores, under this setting is expected that `ZkAvg` achieves better accuracy than `ContAvg`.
 To represent non-IID clients I used the `LabelBasedPartitioner` with `x=2` and `iid_ratio=0.7`
 
-## Configuration
+## Configuration ⚙️
 
 The project configuration is managed through the `pyproject.toml` file. Key configurations include:
 
@@ -185,7 +185,7 @@ The project configuration is managed through the `pyproject.toml` file. Key conf
 
 You can modify these parameters in the `pyproject.toml` file under the `[tool.flwr.app.config]` section.
 
-## Running the Project
+## Running simulation ▶️
 
 To run the Federated Learning simulation:
    ```
@@ -193,5 +193,5 @@ To run the Federated Learning simulation:
    ```
 You can override other configurations parameters (learning rate, batch size etc.)directly changing `pyproject.toml`.
 
-## Results
+## Results 📊
 The results of the training, including accuracy scores and any generated plots, will be saved in the `results/` directory.
