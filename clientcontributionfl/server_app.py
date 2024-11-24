@@ -103,9 +103,3 @@ def save_history(history, params):
         save_dir / Path(f"history_S={strategy}.npy"),
         history
     )
-
-    # TODO check if it works
-    # np.save(
-    #     Path(params['save_path']) / Path("simulation") / Path(f"history{file_suffix}"), 
-    #     history
-    # )

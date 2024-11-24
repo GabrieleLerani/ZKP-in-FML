@@ -42,7 +42,6 @@ def main():
     parser.add_argument("--iid_ratio", type=float, default=0.7, help="IID ratio for the dataset, must be between 0 and 1.")
     args = parser.parse_args()
 
-
     if not check_arguments(args):
         parser.print_help()
         return
@@ -50,7 +49,7 @@ def main():
     strategies = args.strategies
     num_rounds = args.num_rounds
     iid_ratio = args.iid_ratio
-    num_nodes = args.nodes
+    num_nodes = args.num_nodes
 
     # 3. run simulation for different strategies
     for s in strategies:

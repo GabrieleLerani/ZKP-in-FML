@@ -84,7 +84,7 @@ class ContributionAvg(FedAvg):
         """Filter clients based on their contribution score."""
         # TODO replace this computation with a more complex one
         # like clustering
-        filtered_clients = [c for c in clients if self.client_data[c.cid] <= self.discarding_threshold]
+        filtered_clients = [c for c in clients if self.client_data[c.cid] >= self.discarding_threshold]
         return filtered_clients
 
 

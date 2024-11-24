@@ -55,7 +55,7 @@ class ZkAvg(FedAvg):
         # TODO check if it is ok the following
         # compute the sum of all the scores for each client.
         # take score only if client has valid proof
-        total = sum(self.client_data[k][1] for k in self.client_data if self.client_data[k][2])
+        total = sum(self.client_data[k][1] for k in self.client_data)# if self.client_data[k][2])
         # edge cases
         if total == 0:
             equal_weight = 1.0 / len(self.client_data)

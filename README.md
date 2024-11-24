@@ -4,7 +4,7 @@ This project implements strategies for verifying and enforcing honest client con
 
 ## Project Overview
 
-The project implements three main strategies for federated learning:
+The project tests three main strategies for federated learning:
 
 1. **FedAvg**: Standard Federated Averaging algorithm (baseline)
 2. **ContAvg**: Contribution-based client selection where clients report dataset quality scores
@@ -71,10 +71,39 @@ Clients compute a score based on their local dataset distribution and submit it 
 ### ZkAvg Strategy
 To prevent score manipulation, clients must provide zero-knowledge proofs of their contribution using Zokrates. The process works as follows:
 
-1. Each client compiles a `.zok` circuit file
-2. Client provides private input (e.g., [10,30,100] representing label distribution)
+1. Each client compiles a `contribution.zok` circuit file
+2. Client provides private input (e.g., [40,30,100] representing label distribution)
 3. Circuit computes the contribution score and verifies it matches the claimed value
 4. Server verifies the proof before allowing client participation
+
+### Custom partitioner
+The beforementioned strategies are well suited whene data are not IID between clients. Flower already comes with many way partitioner (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called `LabelBasedPartitioner`.
+
+The `LabelBasedPartitioner` allows you to specify:
+- `num_partitions`: Total number of clients/partitions
+- `iid_ratio`: Fraction of clients that will receive IID data (between 0 and 1)
+- `x`: The label each non_iid partition will have 
+
+```python
+# Initialize the partitioner with desired parameters
+partitioner = LabelBasedPartitioner(num_partitions=10, iid_ratio=0.7, x=2)
+
+# Create federated dataset using the partitioner
+fds = FederatedDataset(
+    dataset="ylecun/mnist",
+    partitioners={"train": partitioner}
+)
+
+# Visualize the label distribution across partitions
+fig, ax, df = plot_label_distributions(
+    partitioner=fds.partitioners["train"],
+    label_name="label",
+    plot_type="bar",
+    size_unit="absolute",
+    legend=True,
+)
+```
+
 
 Note: Due to Flower's limitations in file transfer, the implementation uses shared working directory paths between clients and server for proof verification.
 
@@ -111,13 +140,10 @@ You can modify these parameters in the `pyproject.toml` file under the `[tool.fl
 
 To run the Federated Learning simulation:
    ```
-   python main.py
+   python main.py --strategies ZkAvg,ContAvg,FedAvg --num_rounds 10 --num_nodes 10
    ```
-You can change the running configuration and the number of clients and round. Check the `pyproject.toml` for other settings:
-```
-flower-simulation --app . --num-supernodes 5 --run-config "num_rounds=10"
-```
+You can override other configurations parameters (learning rate, batch size etc.)directly changing `pyproject.toml`.
 
 ## Results
 
-The results of the training, including accuracy scores and any generated plots, will be saved in the `clientcontributionfl/plots/` directory.
+The results of the training, including accuracy scores and any generated plots, will be saved in the `results/` directory.

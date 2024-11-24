@@ -9,7 +9,6 @@ def cleanup_proofs():
     if os.path.exists(proofs_dir):
         try:
             shutil.rmtree(proofs_dir)
-            print(f"Successfully removed {proofs_dir} and all its contents")
         except Exception as e:
             print(f"Error while removing directory {proofs_dir}: {str(e)}")
 
