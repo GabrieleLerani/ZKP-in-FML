@@ -55,8 +55,12 @@ def main():
     for s in strategies:
         run_simulation(s, num_rounds, iid_ratio, num_nodes)
 
-    # 4. save results 
+    # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
+    config["num_rounds"] = num_rounds
+    config["iid_ratio"] = iid_ratio
+
+    # 5. save simulation results
     results_path = Path(config["save_path"]) 
     plot_comparison_from_files(
         save_plot_path=results_path,

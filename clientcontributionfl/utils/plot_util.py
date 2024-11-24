@@ -123,22 +123,10 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax2.set_xlabel("Rounds")
     ax2.set_ylabel("Loss")
     ax2.legend(loc="upper right")
-    ax2.set_ylim([0, 3.5])
+    ax2.set_ylim([0, 5])
 
     plt.tight_layout()
     
-    # plot_filename = (
-    #     f"comparison.png"
-    #     f"_strategies={'_'.join(strategies)}"
-    #     f"_R={num_rounds}"
-    #     f"_P={partitioner}"
-    #     + include_sec_agg
-    #     + include_alpha 
-    #     + include_x 
-    #     + include_iid_ratio 
-    #     + include_dishonest
-    #     + ".png"
-    # )
     plt.savefig(result_path / "comparison.png")
     plt.close()
 
