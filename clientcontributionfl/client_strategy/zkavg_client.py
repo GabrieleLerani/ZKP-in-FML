@@ -72,6 +72,7 @@ class ZkClient(NumPyClient):
         self.partition_label_counts = partition_label_counts
     
         self.dishonest = dishonest
+        self.dishonest_value = config["dishonest_value"]
 
         # Zero-Knowledge Proof parameters
         self.scale = config["scale"]
@@ -158,10 +159,8 @@ class ZkClient(NumPyClient):
             params[f"vrfkey_{self.node_id}"] = self.path_proof_dir
             
             # add additional value
-            if self.dishonest:
-                
-                forged_score = 10 
-                forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), forged_score)
+            if self.dishonest: 
+                forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), self.dishonest_value)
 
             
 

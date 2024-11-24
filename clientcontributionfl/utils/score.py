@@ -45,8 +45,8 @@ def compute_score(counts: List[int], scale: int, beta: int, thr: int) -> int:
     """
     total = sum(counts)
     mean_val = total // len(counts)
-    #variance = sum((count - mean_val) ** 2 for count in counts)
-    variance = sum(abs(count - mean_val) for count in counts)
+    variance = sum((count - mean_val) ** 2 for count in counts)
+    #variance = sum(abs(count - mean_val) for count in counts)
     diversity = sum(1 for count in counts if count >= thr) + 1
     score = (beta * variance) + (diversity * scale)
     return int(score)

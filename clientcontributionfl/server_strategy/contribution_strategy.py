@@ -42,10 +42,10 @@ class ContributionAvg(FedAvg):
         discarding_threshold (float): A threshold below which clients are considered to have poor contributions and are filtered out.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, selection_thr: float,*args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client_data = defaultdict(lambda: 1)
-        self.discarding_threshold: float = 0.1  # TODO automatically compute this threshold
+        self.discarding_threshold: float = selection_thr  # TODO automatically compute this threshold
 
     def _normalize_scores(self):
         """

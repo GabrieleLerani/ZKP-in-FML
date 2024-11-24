@@ -33,7 +33,7 @@ class ContributionClient(FedAvgClient):
         self.scale = self.config["scale"]
         self.beta = self.config["beta"]
         self.thr = self.config["thr"]
-
+        self.dishonest_value = self.config["dishonest_value"]
 
     def fit(self, parameters, config):
         """Train model received by the server (parameters) using the data.
@@ -54,7 +54,7 @@ class ContributionClient(FedAvgClient):
 
             # create a forged score
             if self.dishonest:
-                score = 0 
+                score = self.dishonest_value
                 
 
             params[f"score_{self.node_id}"] = score

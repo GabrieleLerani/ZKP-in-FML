@@ -50,6 +50,8 @@ batch_size = 32
 iid_ratio = 0.7 # percentage of iid_node
 x_non_iid = 2 # number of labels of non_iid clients
 dishonest = true # if true all non iid nodes will send a fake score
+dishonest_value = 1000000000 # fake value dishonest clients send to server
+
 
 # secaggplus config
 secaggplus = false
@@ -64,9 +66,10 @@ num_epochs = 1
 lr = 0.01
 
 # zk proof params
-scale = 1000 # weight of the diversity score
+scale = 10000000 # weight of the diversity score
 beta = 1 # the importance to give variance
 thr = 400 # num of minimum label to have positive contribution
+selection_thr = 0.1 # clients with normalized score above 0.1 are selected for training
 
 [tool.flwr.federations]
 default = "local-simulation"

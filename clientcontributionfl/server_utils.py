@@ -103,18 +103,7 @@ def get_strategy(
         testloader: DataLoader
     ) -> Strategy:
 
-    
-    strategy_class = None
-    if cfg['strategy'] == 'FedAvg':
-        strategy_class = FedAvg
-    elif cfg['strategy'] == 'ContAvg': 
-        strategy_class = ContributionAvg
-    elif cfg['strategy'] == 'ZkAvg':
-        strategy_class = ZkAvg
-    else:
-        raise BaseException("Strategy not implemented")
-
-
+    #strategy_class = None
     common_args = {
         'fraction_fit': cfg['fraction_fit'],
         'fraction_evaluate': cfg['fraction_evaluate'],
@@ -124,9 +113,17 @@ def get_strategy(
         'on_fit_config_fn': get_on_fit_config(cfg),
         'on_evaluate_config_fn': get_on_evaluate_config(cfg),
         'evaluate_metrics_aggregation_fn': get_evaluate_metrics_aggregation(cfg),
-        
     }
 
+    if cfg['strategy'] == 'FedAvg':
+        strategy_class = FedAvg
+    elif cfg['strategy'] == 'ContAvg': 
+        strategy_class = ContributionAvg
+        common_args['selection_thr'] = cfg['selection_thr']
+    elif cfg['strategy'] == 'ZkAvg':
+        strategy_class = ZkAvg
+        common_args['selection_thr'] = cfg['selection_thr']
+    
     return strategy_class(**common_args)
 
 

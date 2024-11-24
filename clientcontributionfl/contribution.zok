@@ -12,11 +12,11 @@ def sum<N>(field[N] a) -> field {
 // Function to calculate variance of the elements in an array
 def variance<N>(field[N] arr, field mean) -> field {
     field mut var = 0;
-    field mut diff = 0;
+    //field mut diff = 0;
     for u32 i in 0..N {
-        diff = arr[i] - mean // test it could break prime fields
-        var = if diff > 0 {diff} else {-diff}
-        //var = var + (arr[i] - mean) * (arr[i] - mean);
+        // diff = arr[i] - mean; // test it could break prime fields
+        // var = if diff > 0 {diff} else {-diff};
+        var = var + (arr[i] - mean) * (arr[i] - mean);
     }
     return var;
 }

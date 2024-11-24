@@ -1,6 +1,7 @@
 import shutil
 import os
 import json
+from typing import List
 
 def cleanup_proofs():
     """Remove the proofs directory and all its contents if it exists."""
@@ -13,7 +14,6 @@ def cleanup_proofs():
             print(f"Error while removing directory {proofs_dir}: {str(e)}")
 
 
-import json
 
 def extract_score_from_proof(proof_file_path: str):
     """
@@ -92,3 +92,40 @@ def forge_score_in_proof(proof_file_path, forged_score):
         raise KeyError("'inputs' field is missing in the proof.json file.") from e
     except ValueError as e:
         raise ValueError(f"Invalid value in 'inputs' field: {e}") from e
+    
+
+def check_arguments(args):
+    try:
+        _check_strategies(args.strategies)
+        _check_num_rounds(args.num_rounds)
+        _check_num_clients(args.num_nodes)
+        _check_iid_ratio(args.iid_ratio)
+        return True
+    except ValueError as e:
+        print(f"Invalid arguments: {str(e)}")
+        return False
+
+def _check_strategies(strategies: List[str]):
+    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg"}
+    invalid_strategies = [s for s in strategies if s not in valid_strategies]
+    if invalid_strategies:
+        raise ValueError(f"Invalid strategies: {invalid_strategies}. Valid options are: {valid_strategies}")
+    return True
+
+def _check_num_clients(clients: int):
+    if clients < 1:
+        raise ValueError("Number of client must be greater than or equal to 1")
+    elif clients > 50:
+        raise ResourceWarning("A large number of clients may cause some clients to quit unexpectedly during training.")
+    return True
+
+
+def _check_num_rounds(rounds: int):
+    if rounds < 1:
+        raise ValueError("Number of rounds must be greater than or equal to 1")
+    return True
+
+def _check_iid_ratio(iid_ratio: float):
+    if not 0.0 <= iid_ratio <= 1.0:
+        raise ValueError("IID ratio must be between 0.0 and 1.0 (inclusive)")
+    return True

@@ -1,21 +1,25 @@
 import subprocess
-from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files
-
+import argparse
+from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files, check_arguments
 from flwr.common.config import get_project_config
 from pathlib import Path
 
-def run_simulation(strategy):
+def list_of_strings(arg):
+    return arg.split(',')
+
+
+def run_simulation(strategy, num_rounds, iid_ratio, num_nodes):
 
     if strategy == "FedAvg":
         fraction_fit = 0.3
     elif strategy == "ZkAvg" or strategy == "ContAvg":
         fraction_fit = 1.0
-        
+
     command = [
         "flower-simulation",
         "--app", ".",
-        "--num-supernodes", "10",
-        "--run-config", f'strategy="{strategy}" fraction_fit={fraction_fit}'
+        f"--num-supernodes", str(num_nodes),
+        "--run-config", f'num_rounds={num_rounds} strategy="{strategy}" fraction_fit={fraction_fit} iid_ratio={iid_ratio}'
     ]
     
     print(" ".join(command))
@@ -27,22 +31,37 @@ def run_simulation(strategy):
 
 # TODO in toml file check all unused parameters.
 def main():
-    # 1. clean existings directory of previous simulation
+    # 1. clean existing directory of previous simulation
     cleanup_proofs()
 
-    # 2. run simulation for different strategies
-    strategies = ["ZkAvg","ContAvg","FedAvg"]
-    for s in strategies:
-        run_simulation(s)
+    # 2. parse command line arguments
+    parser = argparse.ArgumentParser(description="Run federated learning simulations.")
+    parser.add_argument("--strategies", type=list_of_strings ,help="Comma-separated list of strategies to simulate. Available are FedAvg, ZkAvg, ContAvg")
+    parser.add_argument("--num_rounds", type=int, default=10,help="Number of rounds for the simulation.")
+    parser.add_argument("--num_nodes", type=int, default=10, help="Number of clients for the simulation.")
+    parser.add_argument("--iid_ratio", type=float, default=0.7, help="IID ratio for the dataset, must be between 0 and 1.")
+    args = parser.parse_args()
 
-    # 3. plot result
+
+    if not check_arguments(args):
+        parser.print_help()
+        return
+
+    strategies = args.strategies
+    num_rounds = args.num_rounds
+    iid_ratio = args.iid_ratio
+    num_nodes = args.nodes
+
+    # 3. run simulation for different strategies
+    for s in strategies:
+        run_simulation(s, num_rounds, iid_ratio, num_nodes)
+
+    # 4. save results 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
-    
-    #save_path = Path("clientcontributionfl/plots/results")
     results_path = Path(config["save_path"]) 
     plot_comparison_from_files(
-        results_path,
-        config,
+        save_plot_path=results_path,
+        config=config,
         strategies=strategies
     )
 
