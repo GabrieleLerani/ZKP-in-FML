@@ -69,9 +69,10 @@ class ZkAvg(FedAvg):
             }
         
 
-    def _aggregate_verificaiton_keys_and_scores(self, fit_metrics: List[Tuple[int, Dict[str, Scalar]]]):
+    def _aggregate_verification_keys_and_scores(self, fit_metrics: List[Tuple[int, Dict[str, Scalar]]]):
         """Aggregates verification keys and scores."""
-        
+        # TODO improve because client_id is embedded into ClientProxy
+        # and doesn't need to be sent from clients.
         for _, metrics in fit_metrics:
             for key, value in metrics.items():
                 client_id = key.split('_')[1]
@@ -137,7 +138,7 @@ class ZkAvg(FedAvg):
         # aggregate keys, score and normalize them
         if server_round == 1:
             fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
-            self._aggregate_verificaiton_keys_and_scores(fit_metrics)
+            self._aggregate_verification_keys_and_scores(fit_metrics)
             self._check_proof()
             self._normalize_scores()
             PrettyPrinter(indent=4).pprint(self.client_data)

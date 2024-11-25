@@ -198,8 +198,6 @@ class ZkClient(NumPyClient):
             self.accuracy_metric
         )
 
-        
-
         log(INFO, f"Round: {config['server_round']}, Client {self.node_id[:3]} is doing evaluate() with loss: {loss:.4f} and accuracy: {accuracy:.4f}")
 
         return float(loss), len(self.testloader), {} # metric
