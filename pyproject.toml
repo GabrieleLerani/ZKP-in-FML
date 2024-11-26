@@ -37,7 +37,6 @@ num_clients_per_round_eval = 2
 save_path = "results"
 strategy = "ZkAvg"
 
-
 # dataset config
 dataset_name = "ylecun/mnist"
 distribution = "iid_and_non_iid"
@@ -52,6 +51,8 @@ x_non_iid = 2 # number of labels of non_iid clients
 dishonest = true # if true all non iid nodes will send a fake score
 dishonest_value = 1000000000 # fake value dishonest clients send to server
 
+# value for power of choice strategy
+d = 5 # size of the candidate set between max(CK, 1) <= d <= K
 
 # secaggplus config
 secaggplus = false

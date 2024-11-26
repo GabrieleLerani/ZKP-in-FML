@@ -1,1 +1,1 @@
-from .simple_cnn import Net, train, test
+from .simple_cnn import Net, train, test, test_random_batch

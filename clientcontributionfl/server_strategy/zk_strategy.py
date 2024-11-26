@@ -42,11 +42,11 @@ class ZkAvg(FedAvg):
         discarding_threshold (float): A threshold below which clients are considered to have poor contributions and are filtered out.
     """
 
-    def __init__(self, selection_thr: float, *args, **kwargs):
+    def __init__(self, selection_thr: Optional[float] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client_data = defaultdict(lambda: ["", 1, False])
         self.zk: Zokrates = Zokrates()
-        self.discarding_threshold: float = selection_thr  
+        self.discarding_threshold = selection_thr  
 
     def _normalize_scores(self):
         """

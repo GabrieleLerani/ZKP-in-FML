@@ -5,7 +5,7 @@ from flwr.common import Context
 from flwr.common.config import get_project_config
 
 from clientcontributionfl import load_data, compute_partition_counts
-from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient
+from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient, PowerOfChoiceClient
 
 
 def client_fn(context: Context) -> Client:
@@ -77,6 +77,27 @@ def client_fn(context: Context) -> Client:
             config=config
         ).to_client()
     
+    elif config["strategy"] == "PoC":
+        
+        partition_counts = compute_partition_counts(
+            data_loader=train_loader,
+            partition_id=partition_id,
+            num_classes=num_classes
+        )
+
+        iid_clients = num_partitions * config["iid_ratio"]
+        dishonest = config["dishonest"]
+
+        return PowerOfChoiceClient(
+            node_id=str(node_id),
+            partition_id=partition_id,
+            trainloader=train_loader,
+            testloader=test_loader,
+            partition_label_counts=partition_counts,
+            num_classes=num_classes,
+            dishonest=partition_id >= iid_clients if dishonest else False,
+            config=config
+        ).to_client()
     
     
 # Load configuration

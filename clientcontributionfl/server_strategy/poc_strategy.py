@@ -13,24 +13,16 @@ from flwr.common import (
 )
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
-from clientcontributionfl.utils import aggregate
+from clientcontributionfl.utils import aggregate, SelectionPhase
 from collections import defaultdict
 from pprint import PrettyPrinter
 from flwr.common.logger import log
-from logging import WARNING
+from logging import INFO, WARNING
 
-from typing import List, Tuple, Union, Optional, Dict
+from typing import List, Tuple, Union, Optional, Dict, Callable
 import random
 import numpy as np
 
-from enum import Enum, auto
-
-class SelectionPhase(Enum):
-    """Enum to track the current phase of the client selection process"""
-    TRAIN_ACTIVE_SET = auto()
-    STORE_LOSSES = auto()
-    AGGREGATE_FROM_ACTIVE_SET = auto()        
-    CANDIDATE_SELECTION = auto()    
 
 
 class PowerOfChoice(ZkAvg):
@@ -45,13 +37,19 @@ class PowerOfChoice(ZkAvg):
     3. Selecting clients with the highest local losses from A to participate.
     """
 
-    def __init__(self, d: float, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self, d: float, 
+        on_fit_config_fn: Optional[Callable[[int, str], dict[str, Scalar]]], 
+        *args, 
+        **kwargs
+    ):
+        super().__init__(d, *args, **kwargs)
         self.d = d # size of candidate set m <= d <= K
+        self.m = 1 # number of clients -> max(CK, 1)
         self.candidate_set : List[ClientProxy] = []
         self.active_clients: List[ClientProxy] = []
-        self.status = SelectionPhase.INITIAL_ROUND
-    
+        self.status = SelectionPhase.SCORE_AGGREGATION
+        self.on_fit_config_fn = on_fit_config_fn
 
     def aggregate_fit(
         self,
@@ -67,21 +65,24 @@ class PowerOfChoice(ZkAvg):
             return None, {}
         else:
 
-            if server_round == 1:
+            #if server_round == 1:
+            if self.status == SelectionPhase.SCORE_AGGREGATION:
                 fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
                 self._aggregate_verification_keys_and_scores(fit_metrics)
                 self._check_proof()
                 self._normalize_scores()
                 PrettyPrinter(indent=4).pprint(self.client_data)
+                self.status = SelectionPhase.CANDIDATE_SELECTION
+                log(INFO, f"scores aggregation completed.")
                 return None, {}
-
+            # TODO if round not used else should be removed
             else:
                 
                 if self.status == SelectionPhase.STORE_LOSSES:
                     # 1. check if received results are within candidate set A and collect received loss
                     fit_metrics = []
                     for client, res in results:
-                        if client.cid not in self.candidate_set:
+                        if client not in self.candidate_set:
                             log(WARNING, "No evaluate_metrics_aggregation_fn provided")
                         else:
                             fit_metrics.append((client.cid, res.metrics))
@@ -89,11 +90,15 @@ class PowerOfChoice(ZkAvg):
                     # 2. Store received losses 
                     client_losses = self._aggregate_loss(fit_metrics)
                     
+                    PrettyPrinter(indent=4).pprint(client_losses)
+                    
                     # 3. Select active clients
-                    self.active_clients = self._select_high_loss_clients(client_losses)
-                
+                    self.active_clients = self._select_high_loss_clients(client_losses, self.m)
+                    
+
                     # 4. Set the next phase as aggregation from the active set
                     self.status = SelectionPhase.TRAIN_ACTIVE_SET
+                    log(INFO, f"losses from candidate set aggregation completed.")
                     return None, {}
 
                 elif self.status == SelectionPhase.AGGREGATE_FROM_ACTIVE_SET:
@@ -108,48 +113,62 @@ class PowerOfChoice(ZkAvg):
                     parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
                     
                     self.status = SelectionPhase.CANDIDATE_SELECTION
+                    log(INFO, f"aggregation from active set completed.")
                     return parameters_aggregated, {}
 
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
         """Configure the next round of training."""
-        config = {}
-        if self.on_fit_config_fn is not None:
-            config = self.on_fit_config_fn(server_round)
-        fit_ins = FitIns(parameters, config)
-
-        # Sample size and minimum number of clients
-        sample_size, min_num_clients = self.num_fit_clients(client_manager.num_available())
         
-        if server_round == 1:
+        if self.status == SelectionPhase.SCORE_AGGREGATION:
+            
+            # set to one because during aggregation we need dataset score of all clients
+            sample_size, min_num_clients = self.num_fit_clients(client_manager.num_available(),fraction_fit=1.0)
             # First round: sample uniformly without filtering in order to obtain their contribution score
             clients = client_manager.sample(
                 num_clients=sample_size, min_num_clients=min_num_clients
             )
-            return [(client, fit_ins) for client in clients]
 
-        if self.status == SelectionPhase.TRAIN_ACTIVE_SET:
-            client_set = self.active_clients
-            self.status == SelectionPhase.AGGREGATE_FROM_ACTIVE_SET
-
-        elif self.status == SelectionPhase.CANDIDATE_SELECTION:
+            config = self._set_status_config(server_round)
             
+            fit_ins = FitIns(parameters, config)
+            return [(client, fit_ins) for client in clients]
+        
+        elif self.status == SelectionPhase.CANDIDATE_SELECTION:
             # Biased sampling based on scores
             self.candidate_set = self._biased_sampling(client_manager, self.d)
             client_set = self.candidate_set
+            
             self.status = SelectionPhase.STORE_LOSSES
+            sample_size, min_num_clients = self.num_fit_clients(
+                client_manager.num_available(),fraction_fit=self.fraction_fit)
+            self.m = sample_size
+
+        elif self.status == SelectionPhase.TRAIN_ACTIVE_SET:
+            client_set = self.active_clients
+            self.status = SelectionPhase.AGGREGATE_FROM_ACTIVE_SET
         
+
+        config = self._set_status_config(server_round)
+        fit_ins = FitIns(parameters, config)
+
         return [(client, fit_ins) for client in client_set]
-    
+
+    def num_fit_clients(self, num_available_clients: int, fraction_fit: float) -> tuple[int, int]:
+        """Return the sample size and the required number of available clients."""
+        num_clients = int(num_available_clients * fraction_fit)
+        return max(num_clients, self.min_fit_clients), self.min_available_clients
+
     def _biased_sampling(self, client_manager: ClientManager, d: int) -> List[ClientProxy]:
         """
         Sample d clients from the client manager using probabilities proportional to their scores.
         """
-        all_clients = list(client_manager.all())
+        all_clients = list(client_manager.all().values())
         probabilities = [self.client_data[client.cid][1] for client in all_clients]
         
         sampled_clients = np.random.choice(all_clients, p=probabilities, size=d, replace=False)
+        #sampled_clients = [all_clients[i] for i in sampled_indices] 
         return sampled_clients
 
     def _get_client_losses(self, candidate_set: List[ClientProxy], parameters: Parameters) -> Dict[str, float]:
@@ -176,7 +195,8 @@ class PowerOfChoice(ZkAvg):
     
     def _aggregate_loss(self, losses: List[Tuple[str, Dict[str, Scalar]]]) -> Dict[str, float]:
         """
-        Aggregate the loss values from the provided metrics.
+        Aggregate the loss values from the provided losses. Such values are then used to build the active set
+        of clients.
 
         Args:
             losses (List[Tuple[str, Dict[str, Scalar]]]): A list of tuples where each tuple contains a client ID and a dictionary of metrics.
@@ -191,3 +211,10 @@ class PowerOfChoice(ZkAvg):
                     client_losses[cid] = v
 
         return client_losses
+
+    def _set_status_config(self, round: int):
+        """Set the status of algorithm to send to clients."""
+        config = {}
+        if self.on_fit_config_fn is not None:
+            config = self.on_fit_config_fn(round, str(self.status))
+        return config

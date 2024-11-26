@@ -8,11 +8,11 @@ def list_of_strings(arg):
     return arg.split(',')
 
 
-def run_simulation(strategy, num_rounds, iid_ratio, num_nodes):
+def run_simulation(strategy, num_rounds, iid_ratio, num_nodes, dishonest):
 
-    if strategy == "FedAvg":
+    if strategy in ["FedAvg", "PoC"]:
         fraction_fit = 0.3
-    elif strategy == "ZkAvg" or strategy == "ContAvg":
+    elif strategy in ["ZkAvg", "ContAvg"]:
         fraction_fit = 1.0
 
     command = [
@@ -40,6 +40,7 @@ def main():
     parser.add_argument("--num_rounds", type=int, default=10,help="Number of rounds for the simulation.")
     parser.add_argument("--num_nodes", type=int, default=10, help="Number of clients for the simulation.")
     parser.add_argument("--iid_ratio", type=float, default=0.7, help="IID ratio for the dataset, must be between 0 and 1.")
+    parser.add_argument("--dishonest", type=bool, default=False, help="If true all non-IID node under iid_and_non_iid partitioner are dishonest and submit a fake score to the server.")
     args = parser.parse_args()
 
     if not check_arguments(args):
@@ -50,10 +51,11 @@ def main():
     num_rounds = args.num_rounds
     iid_ratio = args.iid_ratio
     num_nodes = args.num_nodes
+    dishonest = args.dishonest
 
     # 3. run simulation for different strategies
-    for s in strategies:
-        run_simulation(s, num_rounds, iid_ratio, num_nodes)
+    # for s in strategies:
+    #     run_simulation(s, num_rounds, iid_ratio, num_nodes, dishonest)
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]

@@ -7,6 +7,26 @@ from typing import Optional, List
 from flwr.common.config import get_project_config
 from flwr.common import (NDArrays)
 from functools import reduce
+from enum import Enum, auto
+
+class SelectionPhase(Enum):
+    """Enum to track the current phase of the client selection process"""
+    TRAIN_ACTIVE_SET = auto()
+    STORE_LOSSES = auto()
+    AGGREGATE_FROM_ACTIVE_SET = auto()        
+    CANDIDATE_SELECTION = auto()
+    SCORE_AGGREGATION = auto() # TODO   
+
+def string_to_enum(enum_class: SelectionPhase, enum_str: str) -> SelectionPhase:
+    """Convert a given string the intended enum class, used only in PoC"""
+    try:
+        if "." in enum_str:
+            _, member_name = enum_str.split(".")
+            return getattr(enum_class, member_name)
+        else:
+            raise ValueError("Enum string must contain a dot separating the class and member name.")
+    except AttributeError:
+        raise ValueError(f"{member_name} is not a valid member of {enum_class}.")
 
 def load_history(file_path: str):
     loaded_array = np.load(file_path, allow_pickle=True).item()
@@ -101,11 +121,6 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
         
         history = np.load(file_path, allow_pickle=True).item()
         
-        # print(strategy)
-        # print("\n")
-        # print(history)
-        # print("\n\n")
-
         # Plot centralized accuracy
         rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
         ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=strategy)
@@ -119,7 +134,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax1.set_xlabel("Rounds")
     ax1.set_ylabel("Accuracy")
     ax1.legend(loc="lower right")
-    ax1.set_ylim([0.2, 1])
+    ax1.set_ylim([0.1, 1])
 
     ax2.set_title("Distributed Training Loss - MNIST")
     ax2.set_xlabel("Rounds")

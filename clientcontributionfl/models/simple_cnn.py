@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 from flwr.common.logger import log
 from logging import INFO, DEBUG
+import random
 
 class Net(nn.Module):
     """A simple CNN suitable for simple vision tasks."""
@@ -79,7 +80,6 @@ def train(
         epoch_loss /= len(trainloader)
         epoch_acc = accuracy_metric.compute()
         
-        #log(INFO, f"Epoch {epoch+1}: train loss {epoch_loss:.4f}, accuracy {epoch_acc:.4f}")
 
     return epoch_loss, epoch_acc.item()
 
@@ -108,3 +108,43 @@ def test(net: nn.Module, testloader: DataLoader, device: str, accuracy_metric: A
     accuracy = accuracy_metric.compute()
     
     return test_loss, accuracy.item()
+
+def test_random_batch(net: nn.Module, testloader: DataLoader, device: str) -> float:
+    """Evaluate the network on a single random batch from the test set. This is the 
+        computation efficient variant of Power-Of-Choice, in the original version
+        the loss is computed over all the test dataset.
+    """
+
+    criterion = torch.nn.CrossEntropyLoss()
+    
+    # set to evaluation mode
+    net.eval()
+    net.to(device)
+    
+    # select a batch
+    batch = sample_random_batch(testloader)
+    
+    with torch.no_grad():
+        images, labels = batch["image"], batch["label"]
+        images, labels = images.to(device), labels.to(device)
+        
+        outputs = net(images)
+        test_loss = criterion(outputs, labels).item() / len(batch) 
+    
+    
+    return test_loss
+
+
+def sample_random_batch(dataloader: DataLoader):
+    num_batches = len(dataloader)
+
+    # Randomly select a batch index
+    random_batch_idx = random.randint(0, num_batches - 1)
+
+    # Retrieve the randomly selected batch
+    for idx, batch in enumerate(dataloader):
+        if idx == random_batch_idx:
+            sampled_batch = batch
+            break
+    
+    return sampled_batch

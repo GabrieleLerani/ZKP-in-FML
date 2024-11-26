@@ -11,7 +11,7 @@ from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
 
 from clientcontributionfl.models import Net, test
-from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg
+from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PowerOfChoice
 
 
 from logging import INFO
@@ -20,15 +20,9 @@ def get_evaluate_metrics_aggregation(cfg: Dict[str, any]):
     """Return function that prepares config to send to clients."""
 
     def evaluate_metrics_aggregation_fn(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-        # This function will be executed by the strategy in its
-        # `configure_evaluate()` method. The returned config will be sent to the clients
-        # for evaluation and they can access it via `config` parameter in their 
-        # `evaluate` method.
-        # for _, metric in metrics:
-        #     log(INFO, f"METRICS: {metric}")
-
         return {}    
     return evaluate_metrics_aggregation_fn
+
 
 def get_on_fit_config(cfg: Dict[str, any]):
     """Return function that prepares config to send to clients."""
@@ -45,19 +39,33 @@ def get_on_fit_config(cfg: Dict[str, any]):
             "server_round": server_round,
             "lr": lr
         }
+    
+    def fit_config_fn_poc(server_round: int, state: str):
+        
+        """Construct `config` that clients receive when running `fit()`"""
+        
+        # learning rate decay of 0.995 per round
+        initial_lr = cfg.get("lr", 0.1)
+        lr = initial_lr * (0.995 ** server_round) if server_round > 1 else initial_lr
+        
+        return {
+            "server_round": server_round,
+            "lr": lr,
+            "state": state
+        }
+    
+    if cfg.get("strategy") == "PoC":
+        return fit_config_fn_poc
 
     return fit_config_fn
+
+
 
 
 def get_on_evaluate_config(cfg: Dict[str, any]):
     """Return function that prepares config to send to clients."""
 
     def evaluate_config_fn(server_round: int):
-        # This function will be executed by the strategy in its
-        # `configure_evaluate()` method. The returned config will be sent to the clients
-        # for evaluation and they can access it via `config` parameter in their 
-        # `evaluate` method.
-
         return {
             "server_round": server_round,
         }
@@ -123,6 +131,9 @@ def get_strategy(
     elif cfg['strategy'] == 'ZkAvg':
         strategy_class = ZkAvg
         common_args['selection_thr'] = cfg['selection_thr']
+    elif cfg['strategy'] == 'PoC':
+        common_args['d'] = cfg['d']
+        strategy_class = PowerOfChoice
     
     return strategy_class(**common_args)
 

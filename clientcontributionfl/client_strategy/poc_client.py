@@ -11,11 +11,13 @@ from logging import INFO, DEBUG
 from flwr.common.logger import log
 from torchmetrics import Accuracy
 
-from clientcontributionfl.models import Net, train, test
+from clientcontributionfl.models import Net, train, test, test_random_batch
 
 # relative imports
-from clientcontributionfl.utils import compute_score, forge_score_in_proof
+from clientcontributionfl.utils import compute_score, forge_score_in_proof, string_to_enum, SelectionPhase
 from clientcontributionfl import Zokrates
+
+
 
 # TODO check if you can extend ZkClient
 class PowerOfChoiceClient(NumPyClient):
@@ -126,7 +128,10 @@ class PowerOfChoiceClient(NumPyClient):
         self.set_parameters(parameters)
 
         params = {}
-        if config["server_round"] == 1:
+    
+        state = string_to_enum(SelectionPhase, config["state"])
+        
+        if state == SelectionPhase.SCORE_AGGREGATION : 
             # Compute ZKP score and generate proof in the first round
             score = compute_score(
                 counts=self.partition_label_counts, 
@@ -140,14 +145,18 @@ class PowerOfChoiceClient(NumPyClient):
             # add additional value
             if self.dishonest: 
                 forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), self.dishonest_value)
-
             
 
-        else:
-            # Train the model in subsequent rounds
+        elif state == SelectionPhase.STORE_LOSSES:
+            
+            loss = test_random_batch(self.model, self.trainloader, self.config['device'])
+            # include the loss in params
+            params["loss"] = loss
+            
+
+        elif state == SelectionPhase.AGGREGATE_FROM_ACTIVE_SET: 
             optimizer = torch.optim.SGD(self.model.parameters(), lr=config["lr"])
             
-            # TODO check if loss is computed like in the paper of power of choice
             loss, _ = train(
                 self.model, 
                 self.trainloader, 
@@ -157,8 +166,7 @@ class PowerOfChoiceClient(NumPyClient):
                 self.criterion,
                 self.accuracy_metric
             )
-            # include the loss in params
-            params["loss"] = loss
+
 
         return self.get_parameters({}), len(self.trainloader), params
 

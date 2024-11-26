@@ -2,11 +2,13 @@ import numpy as np
 from pathlib import Path
 from .dataset import load_centralized_dataset
 from .server_utils import get_strategy
+from logging import INFO
 from flwr.common.logger import log
 from flwr.common import Context, Metrics
 from flwr.server import Driver, LegacyContext, ServerApp, ServerConfig
-from flwr.server.workflow import DefaultWorkflow, SecAggPlusWorkflow
+from flwr.server.workflow import DefaultWorkflow, SecAggPlusWorkflow, PoCWorkflow
 from pprint import PrettyPrinter
+
 app = ServerApp()
 
 @app.main()
@@ -28,6 +30,7 @@ def main(driver: Driver, context: Context):
     workflow = create_workflow(run_params)
     
     # Step 5: Execute workflow
+    
     workflow(driver, legacy_context)
     
     # Step 6: Save history
@@ -46,7 +49,7 @@ def extract_run_params(config):
         "reconstruction_threshold": config["reconstruction_threshold"],
         "max_weight": config["max_weight"],
         "strategy_name": config['strategy'],
-        "secaggplus": config.get("secaggplus", True),
+        "secaggplus": config.get("secaggplus", False),
         "alpha": config.get("alpha", 0.05),
         "x_non_iid": config.get("x_non_iid", 2),
         "iid_ratio": config.get("iid_ratio", 0.5),
@@ -67,7 +70,12 @@ def create_workflow(params):
         max_weight=params['max_weight'],
     ) if params['secaggplus'] else None
     
-    return DefaultWorkflow(fit_workflow=fit_workflow)
+    if params['strategy_name'] == "PoC":
+        workflow = PoCWorkflow(fit_workflow=fit_workflow)
+    else:
+        workflow = DefaultWorkflow(fit_workflow=fit_workflow)
+
+    return workflow
 
 def save_history(history, params):
     num_rounds= params['num_rounds']

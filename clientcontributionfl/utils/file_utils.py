@@ -99,13 +99,14 @@ def check_arguments(args):
         _check_num_rounds(args.num_rounds)
         _check_num_clients(args.num_nodes)
         _check_iid_ratio(args.iid_ratio)
+        _check_dishonest(args.dishonest)
         return True
     except ValueError as e:
         print(f"Invalid arguments: {str(e)}")
         return False
 
 def _check_strategies(strategies: List[str]):
-    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg"}
+    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "PoC"}
     invalid_strategies = [s for s in strategies if s not in valid_strategies]
     if invalid_strategies:
         raise ValueError(f"Invalid strategies: {invalid_strategies}. Valid options are: {valid_strategies}")
@@ -129,4 +130,6 @@ def _check_iid_ratio(iid_ratio: float):
         raise ValueError("IID ratio must be between 0.0 and 1.0 (inclusive)")
     return True
 
-
+def _check_dishonest(val: bool):
+    # TODO check that val is used only when partitioner is iid_and_non_iid    
+    return True
