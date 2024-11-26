@@ -54,8 +54,8 @@ def main():
     dishonest = args.dishonest
 
     # 3. run simulation for different strategies
-    # for s in strategies:
-    #     run_simulation(s, num_rounds, iid_ratio, num_nodes, dishonest)
+    for s in strategies:
+        run_simulation(s, num_rounds, iid_ratio, num_nodes, dishonest)
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]

@@ -6,7 +6,8 @@ from logging import INFO
 from flwr.common.logger import log
 from flwr.common import Context, Metrics
 from flwr.server import Driver, LegacyContext, ServerApp, ServerConfig
-from flwr.server.workflow import DefaultWorkflow, SecAggPlusWorkflow, PoCWorkflow
+from flwr.server.workflow import SecAggPlusWorkflow
+from clientcontributionfl.server_strategy import DefaultWorkflow, PoCWorkflow
 from pprint import PrettyPrinter
 
 app = ServerApp()
