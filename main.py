@@ -56,15 +56,15 @@ def main():
 
     # 3. Run simulation for each strategy
     strategies = args.strategies
-    # for strategy in strategies:
-    #     run_simulation(
-    #         strategy=strategy,
-    #         num_rounds=args.num_rounds,
-    #         iid_ratio=args.iid_ratio,
-    #         num_nodes=args.num_nodes,
-    #         dishonest=args.dishonest,
-    #         dataset=args.dataset
-    #     )
+    for strategy in strategies:
+        run_simulation(
+            strategy=strategy,
+            num_rounds=args.num_rounds,
+            iid_ratio=args.iid_ratio,
+            num_nodes=args.num_nodes,
+            dishonest=args.dishonest,
+            dataset=args.dataset
+        )
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]

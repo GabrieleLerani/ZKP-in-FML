@@ -89,7 +89,7 @@ def get_evaluate_fn(
         
         # evaluate global model every round
         # TODO remove if evaluation is every round
-        if server_round >= 1: #== total_rounds:
+        if server_round % 2 == 0: #== total_rounds:
             
             model = NetMnist(num_classes) if dataset_name == "MNIST" else NetCifar10(num_classes)
 
