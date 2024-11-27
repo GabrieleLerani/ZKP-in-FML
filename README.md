@@ -18,20 +18,38 @@ This project implements strategies for verifying and enforcing honest client con
 - [Results](#results-)
 
 ## Project Overview 🎯
+This project explores innovative strategies to enhance **Federated Learning (FL)** while preserving privacy and optimizing client contributions. Federated Learning relies on decentralized data from client devices, but its effectiveness depends on fair and accurate evaluation of client contributions. This project introduces three strategies aimed at improving contribution evaluation, ensuring privacy, and accelerating convergence:  
 
-The project tests three main strategies for federated learning:
+### 1. ContAvg  
+The **Contribution Average (ContAvg)** strategy establishes a baseline by introducing a threshold-based client selection mechanism. Each client computes a contribution score based on its local data and submits this score to the server. The server selects only the clients with scores exceeding the defined threshold for the training process.  
+- **Challenge**: A malicious client can submit fake scores, compromising model integrity.  
 
-1. **FedAvg**: Standard Federated Averaging algorithm (baseline)
-2. **ContAvg**: Contribution-based client selection where clients report dataset quality scores
-3. **ZkAvg**: Zero-knowledge proof verification of client contributions using Zokrates
+### 2. ZkAvg  
+To address the limitations of ContAvg, the **Zero-Knowledge Contribution Average (ZkAvg)** strategy ensures that contribution scores remain trustworthy without exposing sensitive dataset details.  
+- **Approach**: Clients submit **zero-knowledge proofs** of their contribution scores. The server verifies these proofs without accessing the underlying data.  
+- **Advantage**: This technique mitigates malicious activity by only accepting clients with valid proofs, upholding both privacy and reliability.  
 
-### Key Features
+### 3. Enhanced Power of Choice  
+Building on the concepts of contribution evaluation, this strategy adapts the **Power of Choice** algorithm to better align with Federated Learning needs.  
+- **Key Innovations**:  
+  - The probability $`p_k`$ of selecting a client is based on normalized contribution scores. These scores consider not just the size of the dataset but also its **label distribution**, capturing richer information about the dataset's quality.  
+  - The server selects clients with the highest local loss from a candidate set, ensuring efficient utilization of the most promising participants.  
+- **Integration with ZkAvg**: By combining this strategy with ZkAvg, the framework achieves both **privacy-preserving guarantees** and **faster model convergence**, outperforming simpler approaches like ContAvg and FedAvg.  
 
-- Custom client contribution scoring based on dataset characteristics
-- Zero-knowledge proof verification using Zokrates
-- Support for simulating honest/dishonest clients
-- Custom data partitioning for IID and non-IID distribution testing
-- Comparative analysis between strategies using centralized accuracy metrics
+### Why It Matters  
+This project advances Federated Learning by providing methods that:  
+- Protect client data privacy while ensuring trustworthy contribution evaluations.  
+- Optimize client selection for faster and more robust model convergence.  
+- Enable adaptive strategies that account for dataset quality and distribution.  
+
+These strategies can be instrumental in scenarios where trust, efficiency, and privacy are critical, such as healthcare, finance, and edge computing applications.  
+
+---
+
+## Features  
+- **ContAvg**: Threshold-based client selection with contribution scores.  
+- **ZkAvg**: Zero-knowledge proofs for privacy-preserving contribution evaluation.  
+- **Enhanced Power of Choice**: Advanced client selection based on contribution scores and local loss.  
 
 ## Project Structure 📁
 ```
@@ -99,7 +117,7 @@ pyproject.toml # configuration file
 ## Implementation Details 🔍
 [`ContAvg`](clientcontributionfl/server_strategy/contribution_strategy.py) and [`ZkAvg`](clientcontributionfl/server_strategy/zk_strategy.py) are very similar strategies: the general idea is to compute a score which represents client contribution to the global model training. However when client are dishonest they can submit a fake score and increase the likelihood of being selected for training. Zero-knowledge proofs guarantee to discard malicious clients and that's the main contribution of `ZkAvg`. Trivially, when all actor are honest `ZkAvg` and `ContAvg` are the same algorithm.
 
-The **Power of Choice** strategy is a variant of the original Power of Choice algorithm. In this implementation, the probability of a client being selected in the candidate set is based on its contribution score rather than the fraction of data it holds. This score reflects not only the amount of data but also its diversity, allowing for a more nuanced selection of clients for training.
+In this implementation, the probability of a client being selected in the candidate set is based on its contribution score rather than the fraction of data it holds. This score reflects not only the amount of data but also its diversity, allowing for a more nuanced selection of clients for training.
 
 The strategy operates in the following manner:
 1. In the first round, all clients compute their dataset scores and generate zero-knowledge proofs to verify these scores.
