@@ -43,7 +43,7 @@ distribution = "iid_and_non_iid"
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5
-batch_size = 32
+batch_size = 16
 
 # dataset config for non_iid nodes
 iid_ratio = 0.7 # percentage of iid_node
@@ -78,5 +78,5 @@ default = "local-simulation"
 [tool.flwr.federations.local-simulation]
 backend="ray"
 options.num-supernodes = 5
-options.backend.client-resources.num-cpus = 6 # num of cpu used for each client up
-options.backend.client-resources.num-gpus = 0.0 # ratio of VRAM a ClientApp has access to
+options.backend.client-resources.num-cpus = 7 # num of cpu used for each client up
+options.backend.client-resources.num-gpus = 1.0 # ratio of VRAM a ClientApp has access to

@@ -8,7 +8,7 @@ def list_of_strings(arg):
     return arg.split(',')
 
 
-def run_simulation(strategy, num_rounds, iid_ratio, num_nodes, dishonest):
+def run_simulation(strategy, num_rounds, iid_ratio, num_nodes, dishonest, dataset):
 
     if strategy in ["FedAvg", "PoC"]:
         fraction_fit = 0.3
@@ -16,13 +16,19 @@ def run_simulation(strategy, num_rounds, iid_ratio, num_nodes, dishonest):
         fraction_fit = 1.0
 
     command = [
-        "flower-simulation",
-        "--app", ".",
-        f"--num-supernodes", str(num_nodes),
-        "--run-config", f'num_rounds={num_rounds} strategy="{strategy}" fraction_fit={fraction_fit} iid_ratio={iid_ratio}'
+        "flower-simulation",           
+        "--app", ".",                  
+        "--num-supernodes", str(num_nodes),  
+        "--run-config", (              
+            f'num_rounds={num_rounds} '
+            f'strategy="{strategy}" '
+            f'fraction_fit={fraction_fit} '
+            f'iid_ratio={iid_ratio} '
+            f'dishonest="{dishonest}" '
+            f'dataset_name="{dataset}"'
+        )
     ]
     
-    print(" ".join(command))
     result = subprocess.run(command, stderr=subprocess.STDOUT, stdout=None, text=True)
     
     if result.returncode != 0:
@@ -36,31 +42,39 @@ def main():
 
     # 2. parse command line arguments
     parser = argparse.ArgumentParser(description="Run federated learning simulations.")
-    parser.add_argument("--strategies", type=list_of_strings ,help="Comma-separated list of strategies to simulate. Available are FedAvg, ZkAvg, ContAvg")
-    parser.add_argument("--num_rounds", type=int, default=10,help="Number of rounds for the simulation.")
+    parser.add_argument("--strategies", type=list_of_strings, default="FedAvg", help="Comma-separated list of strategies to simulate. Available are FedAvg, ZkAvg, ContAvg")
+    parser.add_argument("--num_rounds", type=int, default=10, help="Number of rounds for the simulation.")
     parser.add_argument("--num_nodes", type=int, default=10, help="Number of clients for the simulation.")
     parser.add_argument("--iid_ratio", type=float, default=0.7, help="IID ratio for the dataset, must be between 0 and 1.")
     parser.add_argument("--dishonest", type=bool, default=False, help="If true all non-IID node under iid_and_non_iid partitioner are dishonest and submit a fake score to the server.")
+    parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "CIFAR10", "FMNIST"], help="Dataset to use for the simulation.")
     args = parser.parse_args()
 
     if not check_arguments(args):
         parser.print_help()
         return
 
+    # 3. Run simulation for each strategy
     strategies = args.strategies
-    num_rounds = args.num_rounds
-    iid_ratio = args.iid_ratio
-    num_nodes = args.num_nodes
-    dishonest = args.dishonest
-
-    # 3. run simulation for different strategies
-    for s in strategies:
-        run_simulation(s, num_rounds, iid_ratio, num_nodes, dishonest)
+    # for strategy in strategies:
+    #     run_simulation(
+    #         strategy=strategy,
+    #         num_rounds=args.num_rounds,
+    #         iid_ratio=args.iid_ratio,
+    #         num_nodes=args.num_nodes,
+    #         dishonest=args.dishonest,
+    #         dataset=args.dataset
+    #     )
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
-    config["num_rounds"] = num_rounds
-    config["iid_ratio"] = iid_ratio
+    
+    config.update({
+        "num_rounds": args.num_rounds,
+        "iid_ratio": args.iid_ratio,
+        "dataset_name": args.dataset,
+    })
+
 
     # 5. save simulation results
     results_path = Path(config["save_path"]) 

@@ -90,8 +90,7 @@ class PowerOfChoice(ZkAvg):
                     # 2. Store received losses 
                     client_losses = self._aggregate_loss(fit_metrics)
                     
-                    PrettyPrinter(indent=4).pprint(client_losses)
-                    
+
                     # 3. Select active clients
                     self.active_clients = self._select_high_loss_clients(client_losses, self.m)
                     

@@ -30,10 +30,18 @@ node_partitions = None # cache node partitions
 global_scores = None # cache global scores
 partition_class_counts = {} # cache number of partitions
 
+def flwr_dataset_name(dataset: str):
+    if dataset == "MNIST":
+        return "ylecun/mnist"
+    elif dataset == "CIFAR10":
+        return "uoft-cs/cifar10"
+    elif dataset == "FMNIST":
+        return "zalando-datasets/fashion_mnist"
 
 def apply_transforms(batch):
     """Apply transforms to the partition from FederatedDataset."""
-    batch["image"] = [TRAIN_TRANSFORMS(img) for img in batch["image"]]
+    feature = list(batch.keys())[0] # take the column name of image
+    batch[feature] = [TRAIN_TRANSFORMS(img) for img in batch[feature]]
     return batch
 
 
@@ -46,7 +54,7 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
         log(INFO,"Initializing FederatedDataset")
         partitioner = get_partitioner(config, num_partitions)
         fds = FederatedDataset(
-            dataset=config["dataset_name"],
+            dataset=flwr_dataset_name(config["dataset_name"]),
             partitioners={"train": partitioner},
         )
         if config["plot_label_distribution"]:
@@ -71,17 +79,18 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
 
     trainloader = DataLoader(train_partition, batch_size=batch_size, shuffle=True, num_workers=7)
     testloader = DataLoader(test_partition, batch_size=batch_size, num_workers=7)
-    return trainloader, testloader, get_num_classes(config["dataset_name"])
+    return trainloader, testloader, get_num_classes(flwr_dataset_name(config["dataset_name"]))
 
 
 def load_centralized_dataset(config: Dict[str, any]) -> tuple[DataLoader, int]:
-    dataset = load_dataset(config["dataset_name"])["test"]
+    dataset_name = flwr_dataset_name(config["dataset_name"])
+    dataset = load_dataset(dataset_name)["test"]
     centralized_test_loader = DataLoader(
         dataset.with_transform(apply_transforms), 
         batch_size=config["batch_size"], 
         num_workers=7
     )
-    return centralized_test_loader, get_num_classes(config["dataset_name"])
+    return centralized_test_loader, get_num_classes(flwr_dataset_name(config["dataset_name"]))
 
 
 def get_partitioner(cfg: Dict[str, any], num_partitions: int):
@@ -111,7 +120,7 @@ def get_partitioner(cfg: Dict[str, any], num_partitions: int):
     return partitioner
 
 def get_num_classes(name: str) -> int:
-    if "mnist" in name:
+    if "mnist" in name or "cifar10" in name:
         return 10
     elif "cifar100" in name:
         return 100

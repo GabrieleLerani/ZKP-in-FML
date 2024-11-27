@@ -10,7 +10,7 @@ from flwr.common import Metrics, Scalar
 from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
 
-from clientcontributionfl.models import Net, test
+from clientcontributionfl.models import NetMnist, NetCifar10, test
 from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PowerOfChoice
 
 
@@ -75,7 +75,8 @@ def get_on_evaluate_config(cfg: Dict[str, any]):
 def get_evaluate_fn(
         device: str,
         num_classes: int, 
-        testloader: DataLoader, 
+        testloader: DataLoader,
+        dataset_name: str 
         
     ):
     """Define function for global evaluation on the server. Test loader is the full MNIST test set.
@@ -87,9 +88,10 @@ def get_evaluate_fn(
         
         
         # evaluate global model every round
+        # TODO remove if evaluation is every round
         if server_round >= 1: #== total_rounds:
             
-            model = Net(num_classes)
+            model = NetMnist(num_classes) if dataset_name == "MNIST" else NetCifar10(num_classes)
 
             
             params_dict = zip(model.state_dict().keys(), parameters)
@@ -117,7 +119,7 @@ def get_strategy(
         'fraction_evaluate': cfg['fraction_evaluate'],
         'min_fit_clients': cfg['num_clients_per_round_fit'],
         'min_evaluate_clients': cfg['num_clients_per_round_eval'],
-        'evaluate_fn': get_evaluate_fn(cfg['device'], num_classes, testloader),
+        'evaluate_fn': get_evaluate_fn(cfg['device'], num_classes, testloader, cfg["dataset_name"]),
         'on_fit_config_fn': get_on_fit_config(cfg),
         'on_evaluate_config_fn': get_on_evaluate_config(cfg),
         'evaluate_metrics_aggregation_fn': get_evaluate_metrics_aggregation(cfg),

@@ -3,7 +3,7 @@ from typing import Dict
 from torch.utils.data import DataLoader
 import torch
 
-
+import torch.nn as nn
 from flwr.client import NumPyClient
 from flwr.common import NDArrays, Scalar
 
@@ -11,7 +11,7 @@ from logging import INFO, DEBUG
 from flwr.common.logger import log
 from torchmetrics import Accuracy
 
-from clientcontributionfl.models import Net, train, test
+from clientcontributionfl.models import train, test
 
 # relative imports
 
@@ -26,6 +26,7 @@ class FedAvgClient(NumPyClient):
         trainloader: DataLoader,
         testloader: DataLoader,
         num_classes: int,
+        model_class: nn.Module,
         config: Dict[str, Scalar]
     ) -> None:
         """
@@ -50,7 +51,7 @@ class FedAvgClient(NumPyClient):
         self.testloader = testloader
 
         # a model that is randomly initialised at first
-        self.model = Net(num_classes)
+        self.model = model_class(num_classes)
         self.config = config
 
         # client training optimizer and criterion

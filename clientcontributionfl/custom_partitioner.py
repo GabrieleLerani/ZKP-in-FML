@@ -64,7 +64,8 @@ class LabelBasedPartitioner(Partitioner):
     def _precompute_partitions(self) -> None:
         """Precompute partitions and store them in a dictionary."""
         class_indices = self._get_class_indices(self.dataset)
-        all_indices = list(range(len(self.dataset["image"])))
+        feature_name = self.dataset.column_names[0]
+        all_indices = list(range(len(self.dataset[feature_name])))
         num_samples = len(self.dataset) // self._num_partitions
         iid_clients = self._num_partitions * self._iid_ratio
         for partition_id in range(self.num_partitions):

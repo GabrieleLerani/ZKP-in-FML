@@ -3,6 +3,7 @@ from typing import Dict
 from torch.utils.data import DataLoader
 import torch
 import os
+import torch.nn as nn
 
 from flwr.client import NumPyClient
 from flwr.common import NDArrays, Scalar
@@ -11,7 +12,7 @@ from logging import INFO, DEBUG
 from flwr.common.logger import log
 from torchmetrics import Accuracy
 
-from clientcontributionfl.models import Net, train, test
+from clientcontributionfl.models import train, test
 
 # relative imports
 from clientcontributionfl.utils import compute_score, forge_score_in_proof
@@ -50,6 +51,7 @@ class ZkClient(NumPyClient):
         partition_label_counts: list,
         num_classes: int,
         dishonest: bool,
+        model_class: nn.Module,
         config: Dict[str, Scalar]
     ) -> None:
         """
@@ -84,7 +86,7 @@ class ZkClient(NumPyClient):
         self.testloader = testloader
 
         # Initialize the model and training configurations
-        self.model = Net(num_classes)
+        self.model = model_class(num_classes)
         self.config = config
         self.criterion = torch.nn.CrossEntropyLoss()
         self.accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(self.config['device'])

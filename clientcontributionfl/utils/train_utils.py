@@ -94,6 +94,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     x_non_iid = config["x_non_iid"]
     iid_ratio = config["iid_ratio"]
     dishonest = config["dishonest"]
+    dataset = config["dataset_name"]
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
@@ -106,6 +107,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     file_suffix = (
         f"R={num_rounds}"
         f"_P={partitioner}"
+        f"_D={dataset}"
         + include_sec_agg
         + include_alpha 
         + include_x 
@@ -127,7 +129,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
 
         # Plot centralized loss
         rounds_loss, values_loss = zip(*history.losses_centralized)
-        #print(rounds_loss, strategy)
+        
         ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=strategy)
 
     ax1.set_title("Centralized Validation Accuracy - MNIST")
@@ -147,49 +149,6 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     plt.savefig(result_path / "comparison.png")
     plt.close()
 
-def plot_metric_from_history(
-    hist: History,
-    save_plot_path: Path,
-    strategy: str,
-    suffix: Optional[str] = "",
-) -> None:
-    """Function to plot from Flower server History.
-
-    Parameters
-    ----------
-    hist : History
-        Object containing evaluation for all rounds.
-    save_plot_path : Path
-        Folder to save the plot to.
-    strategy : str
-        Name of the strategy used.
-    suffix: Optional[str]
-        Optional string to add at the end of the filename for the plot.
-    metric: str
-        Metric to plot. Can be "accuracy" or "loss".
-    """
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
-    
-    # Plot centralized accuracy
-    rounds_acc, values_acc = zip(*hist.metrics_centralized["accuracy"])
-    ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=f"{strategy}")
-    ax1.set_ylim([0.2, 1])
-    ax1.set_title("Centralized Validation Accuracy - MNIST")
-    ax1.set_xlabel("Rounds")
-    ax1.set_ylabel("Accuracy")
-    ax1.legend(loc="lower right")
-
-    # Plot distributed loss
-    rounds_loss, values_loss = zip(*hist.losses_distributed)
-    ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=f"{strategy}", color='red')
-    ax2.set_title("Distributed Training Loss - MNIST")
-    ax2.set_xlabel("Rounds")
-    ax2.set_ylabel("Loss")
-    ax2.legend(loc="upper right")
-
-    plt.tight_layout()
-    plt.savefig(Path(save_plot_path) / Path(f"combined_metrics{suffix}.png"))
-    plt.close()
 
 # TODO check if this should be removed
 def read_scores(plots_folder='plots/scores'):
@@ -220,38 +179,3 @@ def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
 
 
 
-if __name__ == "__main__":
-    config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
-    file_suffix = (
-        f"_S={config['strategy']}"
-        f"_R={config['num_rounds']}"
-        f"_D={config['distribution']}"
-        f"_SecAgg={'On' if config['secaggplus'] else 'Off'}"
-        f"_alpha={config['alpha']}"
-    )
-
-    save_path = str(Path("clientcontributionfl/plots/results"))
-    # load_path = str(Path("clientcontributionfl/plots/results") / Path(f"history{file_suffix}.npy"))
-    # loaded_history = load_history(load_path)
-    # plot_metric_from_history(
-    #     loaded_history,
-    #     save_path,
-    #     config['strategy'],
-    #     file_suffix,
-    # )
-
-    # plot_comparison_from_files(
-    #     save_path,
-    #     config['num_rounds'],
-    #     config['distribution'],
-    #     config['secaggplus'],
-    #     config['alpha']
-    # )
-
-    plot_for_varying_alphas(
-        save_path,
-        config['num_rounds'],
-        config['distribution'],
-        config['secaggplus'],
-        
-    )

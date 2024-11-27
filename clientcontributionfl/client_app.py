@@ -6,7 +6,13 @@ from flwr.common.config import get_project_config
 
 from clientcontributionfl import load_data, compute_partition_counts
 from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient, PowerOfChoiceClient
+import clientcontributionfl.models as models
 
+def get_model_class(dataset_name):
+    if dataset_name in ["MNIST", "FMNIST"]:
+        return getattr(models, "NetMnist")
+    elif dataset_name == "CIFAR10":
+        return getattr(models, "NetCifar10")
 
 def client_fn(context: Context) -> Client:
     
@@ -21,6 +27,9 @@ def client_fn(context: Context) -> Client:
     # load data with FederatedDataset
     train_loader, test_loader, num_classes = load_data(config, partition_id, num_partitions)
 
+
+    model_class = get_model_class(config["dataset_name"])
+
     if config["strategy"] == "FedAvg":
         
         return FedAvgClient(
@@ -29,7 +38,8 @@ def client_fn(context: Context) -> Client:
             trainloader=train_loader,
             testloader=test_loader,
             num_classes=num_classes,
-            config=config
+            config=config,
+            model_class=model_class
         ).to_client()
 
     elif config["strategy"] == "ZkAvg":
@@ -52,7 +62,8 @@ def client_fn(context: Context) -> Client:
             partition_label_counts=partition_counts,
             num_classes=num_classes,
             dishonest=partition_id >= iid_clients if dishonest else False,
-            config=config
+            config=config,
+            model_class=model_class
         ).to_client()
 
     elif config["strategy"] == "ContAvg":
@@ -74,7 +85,8 @@ def client_fn(context: Context) -> Client:
             partition_label_counts=partition_counts,
             num_classes=num_classes,
             dishonest=partition_id >= iid_clients if dishonest else False, # set as many dishonest as non iid clients
-            config=config
+            config=config,
+            model_class=model_class
         ).to_client()
     
     elif config["strategy"] == "PoC":
@@ -96,7 +108,8 @@ def client_fn(context: Context) -> Client:
             partition_label_counts=partition_counts,
             num_classes=num_classes,
             dishonest=partition_id >= iid_clients if dishonest else False,
-            config=config
+            config=config,
+            model_class=model_class
         ).to_client()
     
     

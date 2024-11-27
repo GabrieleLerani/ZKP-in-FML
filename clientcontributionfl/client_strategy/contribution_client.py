@@ -3,8 +3,8 @@ import torch
 from clientcontributionfl.models import train
 from clientcontributionfl.utils import compute_score
 from clientcontributionfl.client_strategy import FedAvgClient
-from logging import INFO, DEBUG
-from flwr.common.logger import log
+
+
 
 
 class ContributionClient(FedAvgClient):

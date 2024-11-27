@@ -87,6 +87,7 @@ def save_history(history, params):
     iid_ratio = params["iid_ratio"]
     dishonest = params["dishonest"]
     strategy = params["strategy_name"]
+    dataset = params["dataset_name"]
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
@@ -97,6 +98,7 @@ def save_history(history, params):
     file_suffix = (
         f"R={num_rounds}"
         f"_P={partitioner}"
+        f"_D={dataset}"
         + include_sec_agg
         + include_alpha 
         + include_x 

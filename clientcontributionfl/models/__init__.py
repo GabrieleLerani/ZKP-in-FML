@@ -1,1 +1,1 @@
-from .simple_cnn import Net, train, test, test_random_batch
+from .simple_cnn import NetMnist ,NetCifar10, train, test, test_random_batch

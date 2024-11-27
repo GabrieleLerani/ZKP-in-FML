@@ -99,6 +99,16 @@ pyproject.toml # configuration file
 ## Implementation Details 🔍
 [`ContAvg`](clientcontributionfl/server_strategy/contribution_strategy.py) and [`ZkAvg`](clientcontributionfl/server_strategy/zk_strategy.py) are very similar strategies: the general idea is to compute a score which represents client contribution to the global model training. However when client are dishonest they can submit a fake score and increase the likelihood of being selected for training. Zero-knowledge proofs guarantee to discard malicious clients and that's the main contribution of `ZkAvg`. Trivially, when all actor are honest `ZkAvg` and `ContAvg` are the same algorithm.
 
+The **Power of Choice** strategy is a variant of the original Power of Choice algorithm. In this implementation, the probability of a client being selected in the candidate set is based on its contribution score rather than the fraction of data it holds. This score reflects not only the amount of data but also its diversity, allowing for a more nuanced selection of clients for training.
+
+The strategy operates in the following manner:
+1. In the first round, all clients compute their dataset scores and generate zero-knowledge proofs to verify these scores.
+2. In subsequent rounds, a candidate set of clients is sampled based on their scores.
+3. Local loss estimates are requested from the sampled clients.
+4. Clients with the highest local losses are selected to participate in training.
+
+This approach aims to enhance the robustness of client selection by prioritizing clients that not only have a significant amount of data but also diverse datasets, thereby improving the overall training process.
+
 ### Score contribution 
 Implement a function to evaluate the dataset quality is not trivial, especially if the computation must be executed in a ZoKrates program, where all variables are defined as elements of a prime field, which means no floating number operations are permitted. Therefore one of the simplest idea I had is to quantify the variance and the diversity of labels on each partition.
 
