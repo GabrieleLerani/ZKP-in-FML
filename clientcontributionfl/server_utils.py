@@ -10,9 +10,9 @@ from flwr.common import Metrics, Scalar
 from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
 
-from clientcontributionfl.models import NetMnist, NetCifar10, test
+import clientcontributionfl.models as models
 from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PowerOfChoice
-
+from clientcontributionfl.utils import get_model_class
 
 from logging import INFO
 
@@ -83,24 +83,21 @@ def get_evaluate_fn(
     """
 
     def evaluate_fn(server_round: int, parameters, config) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-        # this function takes these parameters and evaluates the global model
-        # on the server on a pre defined test dataset.
         
-        
-        # evaluate global model every round
-        # TODO remove if evaluation is every round
-        if server_round % 2 == 0: #== total_rounds:
+        # evaluate global model every two round
+        if server_round % 2 == 0:
             
-            model = NetMnist(num_classes) if dataset_name == "MNIST" else NetCifar10(num_classes)
+            model_class = get_model_class(models,dataset_name)
+            
+            model = model_class(num_classes)
 
-            
             params_dict = zip(model.state_dict().keys(), parameters)
             state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
             model.load_state_dict(state_dict, strict=True)
 
             accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(device)
 
-            loss, accuracy = test(model, testloader, device, accuracy_metric)
+            loss, accuracy = models.test(model, testloader, device, accuracy_metric)
 
             return loss, {"accuracy": accuracy}
 

@@ -7,12 +7,7 @@ from flwr.common.config import get_project_config
 from clientcontributionfl import load_data, compute_partition_counts
 from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient, PowerOfChoiceClient
 import clientcontributionfl.models as models
-
-def get_model_class(dataset_name):
-    if dataset_name in ["MNIST", "FMNIST"]:
-        return getattr(models, "NetMnist")
-    elif dataset_name == "CIFAR10":
-        return getattr(models, "NetCifar10")
+from clientcontributionfl.utils import get_model_class
 
 def client_fn(context: Context) -> Client:
     
@@ -28,7 +23,7 @@ def client_fn(context: Context) -> Client:
     train_loader, test_loader, num_classes = load_data(config, partition_id, num_partitions)
 
 
-    model_class = get_model_class(config["dataset_name"])
+    model_class = get_model_class(models, config["dataset_name"])
 
     if config["strategy"] == "FedAvg":
         

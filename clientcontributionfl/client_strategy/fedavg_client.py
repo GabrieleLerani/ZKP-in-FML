@@ -97,13 +97,12 @@ class FedAvgClient(NumPyClient):
         self.set_parameters(parameters)
         
         
-        loss, accuracy = test(
+        loss, _ = test(
             self.model,
             self.testloader,
             self.config['device'],
             self.accuracy_metric
         )
 
-        log(INFO, f"Round: {config['server_round']}, Client {self.node_id[:3]} is doing evaluate() with loss: {loss:.4f} and accuracy: {accuracy:.4f}")
 
         return float(loss), len(self.testloader), {} # metric

@@ -9,6 +9,12 @@ from flwr.common import (NDArrays)
 from functools import reduce
 from enum import Enum, auto
 
+def get_model_class(models, dataset_name):
+    if dataset_name in ["MNIST", "FMNIST"]:
+        return getattr(models, "NetMnist")
+    elif dataset_name == "CIFAR10":
+        return getattr(models, "NetCifar10")
+
 class SelectionPhase(Enum):
     """Enum to track the current phase of the client selection process"""
     TRAIN_ACTIVE_SET = auto()
@@ -65,7 +71,7 @@ def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distr
     plt.xlabel("Rounds")
     plt.ylabel("Accuracy")
     plt.legend(loc="lower right")
-    plt.ylim([0.2, 1])
+    plt.ylim([0.1, 1])
 
     plt.tight_layout()
     plt.savefig(Path(save_plot_path) / Path(f"alpha_comparison_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}.png"))

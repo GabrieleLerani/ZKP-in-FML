@@ -10,8 +10,6 @@ data/
 # Hydra
 outputs/
 
-# clientcontributionfolder
-clientcontributionfl/plots/scores/
 
 # Python byte-compiled files
 __pycache__/
