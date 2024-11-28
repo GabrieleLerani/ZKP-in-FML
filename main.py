@@ -30,7 +30,7 @@ def run_simulation(args, strategy):
     
     if result.returncode != 0:
             raise ValueError(f"Error: {result.stderr.decode()}")
-    print(f"Simulation completed for strategy = {args.strategy}\n")
+    print(f"Simulation completed for strategy = {strategy}\n")
 
 # TODO in toml file check all unused parameters.
 def main():
@@ -58,8 +58,8 @@ def main():
 
     # 3. Run simulation for each strategy
     strategies = args.strategies
-    for strategy in strategies:
-        run_simulation(args, strategy)
+    # for strategy in strategies:
+    #     run_simulation(args, strategy)
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]

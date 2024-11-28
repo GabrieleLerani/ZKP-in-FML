@@ -9,7 +9,7 @@ from flwr.common import log
 from logging import INFO
 from collections import defaultdict, Counter
 
-import random
+import hashlib
 import pandas as pd
 import numpy as np
 from .utils.score import entropy_score
@@ -71,7 +71,8 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
 
     # Divide data on each node: 80% train, 20% test
     partition_train_test = partition.train_test_split(test_size=0.2, seed=42)
-
+    
+    # TODO check if with_transform is really necessary again since it's already applied above
     train_partition = partition_train_test["train"].with_transform(apply_transforms)
     test_partition = partition_train_test["test"].with_transform(apply_transforms)
     
@@ -209,3 +210,48 @@ def compute_partition_counts(
             partition_class_counts[partition_id][i] = label_counter[i]
 
     return partition_class_counts[partition_id]
+
+
+
+def hash_data(data: bytes) -> str:
+    """
+    Computes the SHA-256 hash of the given data.
+    """
+    return hashlib.sha256(data).hexdigest()
+
+def compute_merkle_root(dataloader: DataLoader) -> str:
+    """
+    Computes the Merkle root of all the dataset images in a PyTorch DataLoader.
+
+    Args:
+        dataloader: PyTorch DataLoader containing the dataset.
+    
+    Returns:
+        The Merkle root as a hex string.
+    """
+    # Step 1: Hash each image in the dataset
+    leaf_hashes = []
+    for images, labels in dataloader:
+        # Flatten images and convert to bytes
+        for image, label in zip(images, labels):
+            image_bytes = image.numpy().tobytes()
+            label_bytes = label.numpy().tobytes()
+            combined_data = image_bytes + label_bytes
+            leaf_hashes.append(hash_data(combined_data))
+    
+    # Step 2: Build the Merkle tree
+    current_level = leaf_hashes
+    while len(current_level) > 1:
+        next_level = []
+        # Combine and hash in pairs
+        for i in range(0, len(current_level), 2):
+            if i + 1 < len(current_level):
+                combined = current_level[i] + current_level[i + 1]
+            else:
+                # Handle odd number of nodes (duplicate last node)
+                combined = current_level[i] + current_level[i]
+            next_level.append(hash_data(combined.encode('utf-8')))
+        current_level = next_level
+    
+    # Step 3: Return the root hash
+    return current_level[0]
