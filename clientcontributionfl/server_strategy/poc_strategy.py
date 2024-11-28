@@ -48,8 +48,10 @@ class PowerOfChoice(ZkAvg):
         self.m = 1 # number of clients -> max(CK, 1)
         self.candidate_set : List[ClientProxy] = []
         self.active_clients: List[ClientProxy] = []
+        self.filtered_probabilities : List[float] = []
         self.status = SelectionPhase.SCORE_AGGREGATION
         self.on_fit_config_fn = on_fit_config_fn
+        
 
     def aggregate_fit(
         self,
@@ -76,44 +78,44 @@ class PowerOfChoice(ZkAvg):
                 log(INFO, f"scores aggregation completed.")
                 return None, {}
             # TODO if round not used else should be removed
-            else:
+        
+            
+            elif self.status == SelectionPhase.STORE_LOSSES:
+                # 1. check if received results are within candidate set A and collect received loss
+                fit_metrics = []
+                for client, res in results:
+                    if client not in self.candidate_set:
+                        log(WARNING, "No evaluate_metrics_aggregation_fn provided")
+                    else:
+                        fit_metrics.append((client.cid, res.metrics))
+                        
+                # 2. Store received losses 
+                client_losses = self._aggregate_loss(fit_metrics)
                 
-                if self.status == SelectionPhase.STORE_LOSSES:
-                    # 1. check if received results are within candidate set A and collect received loss
-                    fit_metrics = []
-                    for client, res in results:
-                        if client not in self.candidate_set:
-                            log(WARNING, "No evaluate_metrics_aggregation_fn provided")
-                        else:
-                            fit_metrics.append((client.cid, res.metrics))
-                            
-                    # 2. Store received losses 
-                    client_losses = self._aggregate_loss(fit_metrics)
-                    
 
-                    # 3. Select active clients
-                    self.active_clients = self._select_high_loss_clients(client_losses, self.m)
-                    
+                # 3. Select active clients
+                self.active_clients = self._select_high_loss_clients(client_losses, self.m)
+                
 
-                    # 4. Set the next phase as aggregation from the active set
-                    self.status = SelectionPhase.TRAIN_ACTIVE_SET
-                    log(INFO, f"losses from candidate set aggregation completed.")
-                    return None, {}
+                # 4. Set the next phase as aggregation from the active set
+                self.status = SelectionPhase.TRAIN_ACTIVE_SET
+                log(INFO, f"losses from candidate set aggregation completed.")
+                return None, {}
 
-                elif self.status == SelectionPhase.AGGREGATE_FROM_ACTIVE_SET:
+            elif self.status == SelectionPhase.AGGREGATE_FROM_ACTIVE_SET:
 
-                    # Convert results
-                    weights_results = [
-                        (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
-                        for _, fit_res in results
-                    ]
-                    aggregated_ndarrays = aggregate(weights_results)
+                # Convert results
+                weights_results = [
+                    (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
+                    for _, fit_res in results
+                ]
+                aggregated_ndarrays = aggregate(weights_results)
 
-                    parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
-                    
-                    self.status = SelectionPhase.CANDIDATE_SELECTION
-                    log(INFO, f"aggregation from active set completed.")
-                    return parameters_aggregated, {}
+                parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
+                
+                self.status = SelectionPhase.CANDIDATE_SELECTION
+                log(INFO, f"aggregation from active set completed.")
+                return parameters_aggregated, {}
 
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
@@ -136,7 +138,7 @@ class PowerOfChoice(ZkAvg):
         
         elif self.status == SelectionPhase.CANDIDATE_SELECTION:
             # Biased sampling based on scores
-            self.candidate_set = self._biased_sampling(client_manager, self.d)
+            self.candidate_set = self._biased_sampling(client_manager, self.d, server_round)
             client_set = self.candidate_set
             
             self.status = SelectionPhase.STORE_LOSSES
@@ -154,20 +156,70 @@ class PowerOfChoice(ZkAvg):
 
         return [(client, fit_ins) for client in client_set]
 
+    def configure_evaluate(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> list[tuple[ClientProxy, EvaluateIns]]:
+        """Configure the next round of evaluation."""
+        # Do not configure federated evaluation if fraction eval is 0.
+        if self.fraction_evaluate == 0.0:
+            return []
+
+        # Parameters and config
+        config = {}
+        if self.on_evaluate_config_fn is not None:
+            # Custom evaluation config function provided
+            config = self.on_evaluate_config_fn(server_round)
+        evaluate_ins = EvaluateIns(parameters, config)
+
+        # Sample clients
+        sample_size, min_num_clients = self.num_evaluation_clients(
+            client_manager.num_available()
+        )
+        clients = client_manager.sample(
+            num_clients=sample_size, min_num_clients=min_num_clients
+        )
+
+        # Return client/config pairs
+        return [(client, evaluate_ins) for client in clients]
+
+
     def num_fit_clients(self, num_available_clients: int, fraction_fit: float) -> tuple[int, int]:
         """Return the sample size and the required number of available clients."""
         num_clients = int(num_available_clients * fraction_fit)
         return max(num_clients, self.min_fit_clients), self.min_available_clients
 
-    def _biased_sampling(self, client_manager: ClientManager, d: int) -> List[ClientProxy]:
+    def _filter_clients(self, clients: List[ClientProxy]) -> List[ClientProxy]:
+        """Filter clients based on their contribution score."""
+        # TODO replace this computation with a more complex one
+        # where similar clients with a similar score are maintained
+        # and other not
+        
+        filtered_clients = []
+        total = 0.0
+        for c in clients:
+            score = self.client_data[c.cid][1]
+            proof_is_valid = self.client_data[c.cid][2]
+            # TODO just not select invalid clients, then use also score
+            if proof_is_valid:
+                filtered_clients.append(c)
+                total += score
+                
+        return filtered_clients, total
+
+    def _biased_sampling(self, client_manager: ClientManager, d: int, round: int) -> List[ClientProxy]:
         """
         Sample d clients from the client manager using probabilities proportional to their scores.
         """
-        all_clients = list(client_manager.all().values())
-        probabilities = [self.client_data[client.cid][1] for client in all_clients]
         
-        sampled_clients = np.random.choice(all_clients, p=probabilities, size=d, replace=False)
-        #sampled_clients = [all_clients[i] for i in sampled_indices] 
+        # TODO normalize probability to include only clients with valid proofs
+        # consider to do it only on the first round and also store the probabilities
+        if round == 1:
+            all_clients = list(client_manager.all().values())
+            self.filtered_clients, total = self._filter_clients(all_clients)
+            self.filtered_probabilities = [self.client_data[client.cid][1] / total for client in self.filtered_clients]
+        
+        sampled_clients = np.random.choice(self.filtered_clients, p=self.filtered_probabilities, size=d, replace=False)
+        
         return sampled_clients
 
     def _get_client_losses(self, candidate_set: List[ClientProxy], parameters: Parameters) -> Dict[str, float]:

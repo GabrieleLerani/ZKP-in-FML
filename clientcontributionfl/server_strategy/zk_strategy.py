@@ -104,7 +104,7 @@ class ZkAvg(FedAvg):
         
         filtered_clients = []
         for c in clients:
-            score = self.client_data[c.cid][1]
+            #score = self.client_data[c.cid][1]
             proof_is_valid = self.client_data[c.cid][2]
             # TODO just not select invalid clients, then use also score
             if proof_is_valid:
@@ -178,7 +178,7 @@ class ZkAvg(FedAvg):
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
         """Configure the next round of evaluation."""
         # Do not configure federated evaluation if fraction eval is 0 or if its first round
-        if self.fraction_evaluate == 0.0 or server_round == 1:
+        if self.fraction_evaluate == 0.0:
             return []
 
         # Parameters and config

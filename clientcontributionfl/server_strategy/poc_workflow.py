@@ -146,15 +146,22 @@ class PoCWorkflow(DefaultWorkflow):
             log(INFO, "[ROUND %s]", current_round)
             cfg[Key.CURRENT_ROUND] = current_round
 
+            if current_round == 1:
+                self.fit_workflow(driver, context)
+
             # Run three stages of PowerOfChoice
-            for stage in range(0,4):
+            for _ in range(0,2):
                 # 1. Aggregate scores during first round
-                if current_round == 1:
-                    self.fit_workflow(driver, context)
+                # if current_round == 1:
+                #     self.fit_workflow(driver, context)
                     
                 # 2. Run subsequent scores
                 self.fit_workflow(driver, context)
                 
+            
+                    
+            # # 2. Run subsequent scores
+            # self.fit_workflow(driver, context)
 
             # Centralized evaluation
             default_centralized_evaluation_workflow(driver, context)

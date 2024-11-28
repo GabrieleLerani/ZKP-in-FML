@@ -43,7 +43,7 @@ distribution = "iid_and_non_iid"
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5
-batch_size = 16
+batch_size = 10
 
 # dataset config for non_iid nodes
 iid_ratio = 0.7 # percentage of iid_node
