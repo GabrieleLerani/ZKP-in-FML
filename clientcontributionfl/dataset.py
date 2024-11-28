@@ -63,7 +63,7 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
             label_dist_path = os.path.join(config["save_path"], "label_dist")
             if not os.path.exists(label_dist_path):
                 os.makedirs(label_dist_path)
-            plt.savefig(f"{label_dist_path}/{config['distribution']}_P={num_partitions}.png")
+            plt.savefig(f"{label_dist_path}/{config['partitioner']}_P={num_partitions}.png")
 
     partition = fds.load_partition(partition_id, "train")
 
@@ -94,28 +94,28 @@ def load_centralized_dataset(config: Dict[str, any]) -> tuple[DataLoader, int]:
 
 
 def get_partitioner(cfg: Dict[str, any], num_partitions: int):
-    distribution = cfg["distribution"]
+    partitioner = cfg["partitioner"]
     
-    if distribution == "linear":
+    if partitioner == "linear":
         partitioner = LinearPartitioner(num_partitions=num_partitions)
-    elif distribution == "exponential":
+    elif partitioner == "exponential":
         partitioner = ExponentialPartitioner(num_partitions=num_partitions)
-    elif distribution == "dirichlet":
+    elif partitioner == "dirichlet":
         partitioner = DirichletPartitioner(num_partitions=num_partitions, alpha= cfg["alpha"], partition_by="label")
-    elif distribution == "pathological":
+    elif partitioner == "pathological":
         partitioner = PathologicalPartitioner(num_partitions=num_partitions, partition_by="label", num_classes_per_partition=cfg["num_classes_per_partition"], class_assignment_mode="deterministic")
-    elif distribution == "square":
+    elif partitioner == "square":
         partitioner = SquarePartitioner(num_partitions=num_partitions)
-    elif distribution == "iid":
+    elif partitioner == "iid":
         partitioner = IidPartitioner(num_partitions=num_partitions)
-    elif distribution == "iid_and_non_iid":
+    elif partitioner == "iid_and_non_iid":
         partitioner = LabelBasedPartitioner(
             num_partitions=num_partitions,
             iid_ratio = cfg["iid_ratio"],
             x = cfg["x_non_iid"]
         )
     else:
-        raise ValueError(f"Distribution {distribution} not supported") 
+        raise ValueError(f"Partitioner {partitioner} not supported") 
             
     return partitioner
 

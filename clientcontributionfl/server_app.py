@@ -31,7 +31,6 @@ def main(driver: Driver, context: Context):
     workflow = create_workflow(run_params)
     
     # Step 5: Execute workflow
-    
     workflow(driver, legacy_context)
     
     # Step 6: Save history
@@ -44,7 +43,7 @@ def print_config(config):
 def extract_run_params(config):
     return {
         "num_rounds": config["num_rounds"],
-        "distribution": config["distribution"],
+        "partitioner": config["partitioner"],
         "save_path": config['save_path'],
         "num_shares": config["num_shares"],
         "reconstruction_threshold": config["reconstruction_threshold"],
@@ -81,7 +80,7 @@ def create_workflow(params):
 
 def save_history(history, params):
     num_rounds= params['num_rounds']
-    partitioner = params["distribution"]
+    partitioner = params["partitioner"]
     secaggplus=params['secaggplus']
     alpha = params["alpha"]
     x_non_iid = params["x_non_iid"]

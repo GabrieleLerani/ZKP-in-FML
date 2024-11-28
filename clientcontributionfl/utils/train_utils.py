@@ -94,7 +94,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     """
 
     num_rounds=config['num_rounds']
-    partitioner=config['distribution']
+    partitioner=config['partitioner']
     secaggplus=config['secaggplus']
     alpha=config['alpha']
     x_non_iid = config["x_non_iid"]

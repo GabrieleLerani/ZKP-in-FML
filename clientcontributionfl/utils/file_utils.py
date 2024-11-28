@@ -100,6 +100,14 @@ def check_arguments(args):
         _check_num_clients(args.num_nodes)
         _check_iid_ratio(args.iid_ratio)
         _check_dishonest(args.dishonest)
+        _check_fraction_fit(args.fraction_fit)
+        _check_d(
+            c=args.fraction_fit,
+            k=args.num_nodes,
+            iid_ratio=args.iid_ratio,
+            d=args.d
+        )
+                
         return True
     except ValueError as e:
         print(f"Invalid arguments: {str(e)}")
@@ -132,4 +140,35 @@ def _check_iid_ratio(iid_ratio: float):
 
 def _check_dishonest(val: bool):
     # TODO check that val is used only when partitioner is iid_and_non_iid    
+    return True
+
+def _check_d(c: int, k: int, iid_ratio: int, d: int):
+    """
+    Check if the value of d is within the range of max(ck,1) and k.
+
+    Parameters
+    ----------
+    c : int
+        Fraction of clients.
+    k : int
+        Number of clients
+    iid_ratio int:
+        Fraction of iid clients 
+    d : int
+        Size of candidate set
+
+    Returns
+    -------
+    bool
+        True if the value of d is within the range, False otherwise.
+    """
+    iid_clients = int(k * iid_ratio)
+
+    if not (max(c*iid_clients, 1) <= d <= iid_clients):
+        raise ValueError(f"The value of d must be within the range of {max(c*iid_clients, 1)} and {iid_clients}. Current value: {d}")
+    return True
+
+def _check_fraction_fit(c: float):
+    if not 0.0 <= c <= 1.0:
+        raise ValueError("Fraction fit must be between 0.0 and 1.0 (inclusive)")
     return True

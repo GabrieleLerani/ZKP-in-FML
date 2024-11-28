@@ -39,7 +39,7 @@ strategy = "ZkAvg"
 
 # dataset config
 dataset_name = "ylecun/mnist"
-distribution = "iid_and_non_iid"
+partitioner = "iid_and_non_iid"
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5

@@ -67,7 +67,6 @@ class PowerOfChoice(ZkAvg):
             return None, {}
         else:
 
-            #if server_round == 1:
             if self.status == SelectionPhase.SCORE_AGGREGATION:
                 fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
                 self._aggregate_verification_keys_and_scores(fit_metrics)
@@ -77,9 +76,8 @@ class PowerOfChoice(ZkAvg):
                 self.status = SelectionPhase.CANDIDATE_SELECTION
                 log(INFO, f"scores aggregation completed.")
                 return None, {}
-            # TODO if round not used else should be removed
-        
             
+        
             elif self.status == SelectionPhase.STORE_LOSSES:
                 # 1. check if received results are within candidate set A and collect received loss
                 fit_metrics = []

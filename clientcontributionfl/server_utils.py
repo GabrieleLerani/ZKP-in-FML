@@ -124,12 +124,18 @@ def get_strategy(
 
     if cfg['strategy'] == 'FedAvg':
         strategy_class = FedAvg
-    elif cfg['strategy'] == 'ContAvg': 
+    elif cfg['strategy'] == 'ContAvg':
+        common_args["fraction_fit"] = 1.0 
+        common_args['selection_thr'] = cfg['selection_thr']
+        
         strategy_class = ContributionAvg
-        common_args['selection_thr'] = cfg['selection_thr']
+
     elif cfg['strategy'] == 'ZkAvg':
-        strategy_class = ZkAvg
+        common_args["fraction_fit"] = 1.0 
         common_args['selection_thr'] = cfg['selection_thr']
+
+        strategy_class = ZkAvg
+        
     elif cfg['strategy'] == 'PoC':
         common_args['d'] = cfg['d']
         strategy_class = PowerOfChoice
