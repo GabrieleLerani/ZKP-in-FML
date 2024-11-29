@@ -144,7 +144,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax1.legend(loc="lower right")
     ax1.set_ylim([0.1, 1])
 
-    ax2.set_title(f"Distributed Training Loss - {dataset}")
+    ax2.set_title(f"Centralized Training Loss - {dataset}")
     ax2.set_xlabel("Rounds")
     ax2.set_ylabel("Loss")
     ax2.legend(loc="upper right")

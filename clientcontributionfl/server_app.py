@@ -53,7 +53,7 @@ def extract_run_params(config):
         "alpha": config.get("alpha", 0.05),
         "x_non_iid": config.get("x_non_iid", 2),
         "iid_ratio": config.get("iid_ratio", 0.5),
-        "dishonest": config.get("dishonest", 0.5),
+        "dishonest": config.get("dishonest", False),
         "dataset_name": config.get("dataset_name", ""),
     }
 

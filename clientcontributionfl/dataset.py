@@ -9,13 +9,14 @@ from flwr.common import log
 from logging import INFO
 from collections import defaultdict, Counter
 
+
 import hashlib
 import pandas as pd
 import numpy as np
 from .utils.score import entropy_score
 
 import os
-from typing import Dict
+from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 
 TRAIN_TRANSFORMS = transforms.Compose([
@@ -213,11 +214,50 @@ def compute_partition_counts(
 
 
 
-def hash_data(data: bytes) -> str:
+def hash(data: bytes) -> bytes:
     """
     Computes the SHA-256 hash of the given data.
     """
-    return hashlib.sha256(data).hexdigest()
+    return hashlib.sha256(data).digest()
+
+def hash_to_u32(val: bytes) -> str:
+    """Converts a SHA-256 hash into a sequence of 32-bit integers."""
+    M0 = val.hex()[:128]
+    b0 = [str(int(M0[i:i+8], 16)) for i in range(0, len(M0), 8)]
+    return " ".join(b0)
+
+def build_merkle_tree(leaves: list[bytes]) -> list[list[bytes]]:
+    """Constructs a Merkle tree and returns all levels."""
+    tree = [leaves]  # Start with the leaf nodes
+    current_level = leaves
+
+    while len(current_level) > 1:
+        next_level = []
+        for i in range(0, len(current_level), 2):
+            # Combine pairs of hashes to form the next level
+            if i + 1 < len(current_level):
+                combined = current_level[i] + current_level[i + 1]
+            else:
+                # Handle odd number of nodes (duplicate last node)
+                combined = current_level[i] + current_level[i]            
+
+            next_level.append(hash(combined))
+        tree.append(next_level)
+        current_level = next_level
+
+    return tree
+
+
+def get_merkle_proof(tree: list[list[bytes]], leaf_index: int) -> Tuple[list[bytes], list[int]]:
+    """Generates the Merkle proof for a given leaf index."""
+    proof = []
+    directions = []
+    for level in range(len(tree) - 1):
+        sibling_index = leaf_index ^ 1  # XOR with 1 to get the sibling index
+        directions.append(leaf_index % 2)  # 0 if left, 1 if right
+        proof.append([tree[level][sibling_index],(level,sibling_index)])
+        leaf_index //= 2
+    return proof, directions
 
 def compute_merkle_root(dataloader: DataLoader) -> str:
     """
@@ -237,21 +277,13 @@ def compute_merkle_root(dataloader: DataLoader) -> str:
             image_bytes = image.numpy().tobytes()
             label_bytes = label.numpy().tobytes()
             combined_data = image_bytes + label_bytes
-            leaf_hashes.append(hash_data(combined_data))
+            leaf_hashes.append(hash(int.to_bytes(combined_data, 64, "big")))
+            
     
     # Step 2: Build the Merkle tree
-    current_level = leaf_hashes
-    while len(current_level) > 1:
-        next_level = []
-        # Combine and hash in pairs
-        for i in range(0, len(current_level), 2):
-            if i + 1 < len(current_level):
-                combined = current_level[i] + current_level[i + 1]
-            else:
-                # Handle odd number of nodes (duplicate last node)
-                combined = current_level[i] + current_level[i]
-            next_level.append(hash_data(combined.encode('utf-8')))
-        current_level = next_level
+    merkle_tree = build_merkle_tree(dataloader)
+
+    root = merkle_tree[-1][0]
     
     # Step 3: Return the root hash
-    return current_level[0]
+    return root
