@@ -11,7 +11,7 @@ from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
 
 import clientcontributionfl.models as models
-from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PowerOfChoice
+from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC
 from clientcontributionfl.utils import get_model_class
 
 from logging import INFO
@@ -54,7 +54,7 @@ def get_on_fit_config(cfg: Dict[str, any]):
             "state": state
         }
     
-    if cfg.get("strategy") == "PoC":
+    if "PoC" in cfg.get("strategy"):
         return fit_config_fn_poc
 
     return fit_config_fn
@@ -124,22 +124,28 @@ def get_strategy(
 
     if cfg['strategy'] == 'FedAvg':
         strategy_class = FedAvg
+    
     elif cfg['strategy'] == 'ContAvg':
+        
         common_args["fraction_fit"] = 1.0 
         common_args['selection_thr'] = cfg['selection_thr']
-        
         strategy_class = ContributionAvg
 
     elif cfg['strategy'] == 'ZkAvg':
+        
         common_args["fraction_fit"] = 1.0 
         common_args['selection_thr'] = cfg['selection_thr']
 
         strategy_class = ZkAvg
-        
+    
     elif cfg['strategy'] == 'PoC':
         common_args['d'] = cfg['d']
-        strategy_class = PowerOfChoice
-    
+        strategy_class = PoC
+    elif cfg['strategy'] == 'PoCZk':
+        
+        common_args['d'] = cfg['d']
+        strategy_class = PoCZk
+
     return strategy_class(**common_args)
 
 

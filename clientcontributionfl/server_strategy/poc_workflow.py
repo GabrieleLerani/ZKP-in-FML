@@ -117,7 +117,8 @@ class DefaultWorkflow:
         thread.join()
 
 class PoCWorkflow(DefaultWorkflow):
-    """Extend default workflow in order to implement PoC strategy."""
+    """Extend default workflow in order to implement PoC strategy with Zk
+    for privacy preserving contribution evaluation."""
     def __call__(self, driver: Driver, context: Context) -> None:
         
         """Execute the workflow."""
@@ -149,19 +150,79 @@ class PoCWorkflow(DefaultWorkflow):
             if current_round == 1:
                 self.fit_workflow(driver, context)
 
-            # Run three stages of PowerOfChoice
+            # Run two stages of PowerOfChoice
             for _ in range(0,2):
-                # 1. Aggregate scores during first round
-                # if current_round == 1:
-                #     self.fit_workflow(driver, context)
                     
-                # 2. Run subsequent scores
+                # Run subsequent scores
                 self.fit_workflow(driver, context)
-                
-            
+
+            # Centralized evaluation
+            default_centralized_evaluation_workflow(driver, context)
+
+            # Evaluate round
+            self.evaluate_workflow(driver, context)
+
+        # Bookkeeping and log results
+        end_time = timeit.default_timer()
+        elapsed = end_time - start_time
+        hist = context.history
+        log(INFO, "")
+        log(INFO, "[SUMMARY]")
+        log(
+            INFO,
+            "Run finished %s round(s) in %.2fs",
+            context.config.num_rounds,
+            elapsed,
+        )
+        for idx, line in enumerate(io.StringIO(str(hist))):
+            if idx == 0:
+                log(INFO, "%s", line.strip("\n"))
+            else:
+                log(INFO, "\t%s", line.strip("\n"))
+        log(INFO, "")
+
+        # Terminate the thread
+        f_stop.set()
+        thread.join()
+
+
+    """Extend default workflow in order to implement standard PoC strategy."""
+    def __call__(self, driver: Driver, context: Context) -> None:
+        
+        """Execute the workflow."""
+        if not isinstance(context, LegacyContext):
+            raise TypeError(
+                f"Expect a LegacyContext, but get {type(context).__name__}."
+            )
+
+        # Start the thread updating nodes
+        thread, f_stop = start_update_client_manager_thread(
+            driver, context.client_manager
+        )
+
+        # Initialize parameters
+        log(INFO, "[INIT POC WORKFLOW]")
+        default_init_params_workflow(driver, context)
+
+        # Run federated learning for num_rounds
+        start_time = timeit.default_timer()
+        cfg = ConfigsRecord()
+        cfg[Key.START_TIME] = start_time
+        context.state.configs_records[MAIN_CONFIGS_RECORD] = cfg
+
+        for current_round in range(1, context.config.num_rounds + 1):
+            log(INFO, "")
+            log(INFO, "[ROUND %s]", current_round)
+            cfg[Key.CURRENT_ROUND] = current_round
+
+            if current_round == 1:
+                self.fit_workflow(driver, context)
+
+            # Run two stages of PowerOfChoice
+            for _ in range(0,2):
                     
-            # # 2. Run subsequent scores
-            # self.fit_workflow(driver, context)
+                # Run subsequent scores
+                self.fit_workflow(driver, context)
 
             # Centralized evaluation
             default_centralized_evaluation_workflow(driver, context)

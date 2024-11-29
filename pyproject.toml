@@ -40,7 +40,7 @@ strategy = "ZkAvg"
 # dataset config
 dataset_name = "ylecun/mnist"
 partitioner = "iid_and_non_iid"
-balanced = false if true iid partitions will have same size.
+balanced = false  # if true iid partitions will have same size.
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5

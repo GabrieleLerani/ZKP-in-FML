@@ -18,7 +18,7 @@ def run_simulation(args, strategy):
         "--run-config", (              
             f'num_rounds={args.num_rounds} '
             f'partitioner="{args.partitioner}" '
-            f'balanced="{str(args.balanced).lower()}" '
+            f'balanced={str(args.balanced).lower()} '
             f'strategy="{strategy}" '
             f'fraction_fit={args.fraction_fit} '
             f'iid_ratio={args.iid_ratio} '
@@ -27,6 +27,7 @@ def run_simulation(args, strategy):
             f'd={args.d}'
         )
     ]
+    
     
     result = subprocess.run(command, stderr=subprocess.STDOUT, stdout=None, text=True)
     

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define common arguments
-STRATEGIES="PoC,ZkAvg,ContAvg,FedAvg"
+STRATEGIES="PoCZk,ZkAvg,ContAvg,FedAvg"
 PARTITIONER="iid_and_non_iid"
 NUM_ROUNDS=40
 NUM_NODES=10

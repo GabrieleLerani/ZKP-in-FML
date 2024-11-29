@@ -105,7 +105,8 @@ def check_arguments(args):
             c=args.fraction_fit,
             k=args.num_nodes,
             iid_ratio=args.iid_ratio,
-            d=args.d
+            d=args.d,
+            dishonest=args.dishonest
         )
         _check_balanced(args.partitioner, args.balanced)
                 
@@ -115,7 +116,7 @@ def check_arguments(args):
         return False
 
 def _check_strategies(strategies: List[str]):
-    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "PoC"}
+    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "PoC", "PoCZk"}
     invalid_strategies = [s for s in strategies if s not in valid_strategies]
     if invalid_strategies:
         raise ValueError(f"Invalid strategies: {invalid_strategies}. Valid options are: {valid_strategies}")
@@ -144,7 +145,7 @@ def _check_dishonest(dishonest: bool, partitioner):
         raise ValueError("Dishonest flag can only be used with iid_and_non_iid partitioner.")
     return True
 
-def _check_d(c: int, k: int, iid_ratio: int, d: int):
+def _check_d(c: int, k: int, iid_ratio: int, d: int, dishonest: bool):
     """
     Check if the value of d is within the range of max(ck,1) and k.
 
@@ -164,7 +165,7 @@ def _check_d(c: int, k: int, iid_ratio: int, d: int):
     bool
         True if the value of d is within the range, False otherwise.
     """
-    iid_clients = int(k * iid_ratio)
+    iid_clients = int(k * iid_ratio) if dishonest else k
 
     if not (max(c*iid_clients, 1) <= d <= iid_clients):
         raise ValueError(f"The value of d must be within the range of {max(c*iid_clients, 1)} and {iid_clients}. Current value: {d}")

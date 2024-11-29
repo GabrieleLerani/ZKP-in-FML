@@ -3,8 +3,9 @@ import os
 from clientcontributionfl.models import train, test_random_batch
 from clientcontributionfl.utils import compute_score, forge_score_in_proof, string_to_enum, SelectionPhase
 from .zkavg_client import ZkClient
+from .fedavg_client import FedAvgClient
 
-class PowerOfChoiceClient(ZkClient):
+class PoCZkClient(ZkClient):
     
     def fit(self, parameters, config):
         """Train the model using the client's data and return updated parameters.
@@ -61,3 +62,43 @@ class PowerOfChoiceClient(ZkClient):
 
         return self.get_parameters({}), len(self.trainloader), params
 
+
+class PoCClient(FedAvgClient):
+    
+    def fit(self, parameters, config):
+        """Train the model using the client's data and return updated parameters.
+
+        Args:
+            parameters: The model parameters received from the server.
+            config: Configuration dictionary containing training settings.
+
+        Returns:
+            Updated model parameters, the size of the training data, and additional parameters.
+        """
+        self.set_parameters(parameters)
+
+        params = {}
+    
+        state = string_to_enum(SelectionPhase, config["state"])
+            
+        if state == SelectionPhase.STORE_LOSSES:
+            
+            loss = test_random_batch(self.model, self.trainloader, self.config['device'])
+            # include the loss in params
+            params["loss"] = loss
+            
+        elif state == SelectionPhase.AGGREGATE_FROM_ACTIVE_SET: 
+            optimizer = torch.optim.SGD(self.model.parameters(), lr=config["lr"])
+            
+            loss, _ = train(
+                self.model, 
+                self.trainloader, 
+                self.config['num_epochs'], 
+                self.config['device'], 
+                optimizer,
+                self.criterion,
+                self.accuracy_metric
+            )
+
+
+        return self.get_parameters({}), len(self.trainloader), params

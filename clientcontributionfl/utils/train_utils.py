@@ -21,7 +21,8 @@ class SelectionPhase(Enum):
     STORE_LOSSES = auto()
     AGGREGATE_FROM_ACTIVE_SET = auto()        
     CANDIDATE_SELECTION = auto()
-    SCORE_AGGREGATION = auto() # TODO   
+    SCORE_AGGREGATION = auto() 
+    DATASET_SIZE_AGGREGATION = auto() # used only in PoC
 
 def string_to_enum(enum_class: SelectionPhase, enum_str: str) -> SelectionPhase:
     """Convert a given string the intended enum class, used only in PoC"""
