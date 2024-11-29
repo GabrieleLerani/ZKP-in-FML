@@ -116,7 +116,7 @@ def get_partitioner(cfg: Dict[str, any], num_partitions: int):
             iid_ratio = cfg["iid_ratio"],
             x = cfg["x_non_iid"],
             balance_partitions=cfg["balanced"],
-            iid_fraction = 0.5 # TODO pass as argument.
+            iid_fraction = cfg["iid_data_fraction"]#0.3 # TODO pass as argument.
         )
     else:
         raise ValueError(f"Partitioner {partitioner} not supported") 

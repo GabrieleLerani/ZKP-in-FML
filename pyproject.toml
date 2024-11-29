@@ -48,6 +48,7 @@ batch_size = 10
 
 # dataset config for non_iid nodes
 iid_ratio = 0.7 # percentage of iid_node
+iid_data_fraction = 0.3 # percentage of iid_node
 x_non_iid = 2 # number of labels of non_iid clients
 dishonest = true # if true all non iid nodes will send a fake score
 dishonest_value = 1000000000 # fake value dishonest clients send to server

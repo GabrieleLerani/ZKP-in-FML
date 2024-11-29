@@ -51,6 +51,7 @@ def main():
     parser.add_argument("--num_nodes", type=int, default=10, help="Number of clients for the simulation.")
     parser.add_argument("--fraction_fit", type=float, default=0.3, help="Fraction of clients selected for training. Such values can be modified depending on the strategy.")
     parser.add_argument("--iid_ratio", type=float, default=0.7, help="IID ratio for the dataset, must be between 0 and 1.")
+    parser.add_argument("--iid_data_fraction", type=float, default=0.5, help="Fraction of total data allocated to IID clients (relative to non-IID clients).")
     parser.add_argument("--dishonest", action="store_true",default=False, help="If true all non-IID node under iid_and_non_iid partitioner are dishonest and submit a fake score to the server.")
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "CIFAR10", "FMNIST"], help="Dataset to use for the simulation.")
     parser.add_argument("--d", type=int, default=5, help="Size of the candidate set used in PoC. Must be: max(CK, 1) <= d <= K where C is the fraction_fit of clients")

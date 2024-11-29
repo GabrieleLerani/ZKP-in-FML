@@ -99,6 +99,7 @@ def check_arguments(args):
         _check_num_rounds(args.num_rounds)
         _check_num_clients(args.num_nodes)
         _check_iid_ratio(args.iid_ratio)
+        _check_iid_data_fraction(args.iid_data_fraction)
         _check_dishonest(args.dishonest, args.partitioner)
         _check_fraction_fit(args.fraction_fit)
         _check_d(
@@ -135,9 +136,14 @@ def _check_num_rounds(rounds: int):
         raise ValueError("Number of rounds must be greater than or equal to 1")
     return True
 
-def _check_iid_ratio(iid_ratio: float):
-    if not 0.0 <= iid_ratio <= 1.0:
+def _check_iid_ratio(iid_data_fraction: float):
+    if not 0.0 <= iid_data_fraction <= 1.0:
         raise ValueError("IID ratio must be between 0.0 and 1.0 (inclusive)")
+    return True
+
+def _check_iid_data_fraction(iid_ratio: float):
+    if not 0.0 <= iid_ratio <= 1.0:
+        raise ValueError("IID data fraction must be between 0.0 and 1.0 (inclusive)")
     return True
 
 def _check_dishonest(dishonest: bool, partitioner):
