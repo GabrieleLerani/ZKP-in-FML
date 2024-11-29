@@ -101,12 +101,14 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     iid_ratio = config["iid_ratio"]
     dishonest = config["dishonest"]
     dataset = config["dataset_name"]
+    balanced = config["balanced"]
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
     include_dishonest = (f"_dishonest" if dishonest else "")
     include_sec_agg = ("SecAgg" if secaggplus else "")
+    include_balanced = (f"_bal={balanced}" if partitioner == "iid_and_non_iid" else "")
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
     
@@ -119,6 +121,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
         + include_x 
         + include_iid_ratio 
         + include_dishonest
+        + include_balanced
     )
 
     result_path = save_plot_path / Path("simulation") / Path(file_suffix.lstrip('_'))

@@ -54,6 +54,7 @@ def extract_run_params(config):
         "x_non_iid": config.get("x_non_iid", 2),
         "iid_ratio": config.get("iid_ratio", 0.5),
         "dishonest": config.get("dishonest", False),
+        "balanced": config.get("balanced", False),
         "dataset_name": config.get("dataset_name", ""),
     }
 
@@ -88,12 +89,14 @@ def save_history(history, params):
     dishonest = params["dishonest"]
     strategy = params["strategy_name"]
     dataset = params["dataset_name"]
+    balanced = params["balanced"]
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
     include_dishonest = (f"_dishonest" if dishonest else "")
     include_sec_agg = ("SecAgg" if secaggplus else "")
+    include_balanced = (f"_bal={balanced}" if partitioner == "iid_and_non_iid" else "")
     
     file_suffix = (
         f"R={num_rounds}"
@@ -104,6 +107,7 @@ def save_history(history, params):
         + include_x 
         + include_iid_ratio 
         + include_dishonest
+        + include_balanced
     )
 
     save_dir = Path(params['save_path']) / Path("simulation") / Path(file_suffix.lstrip('_'))

@@ -114,7 +114,9 @@ def get_partitioner(cfg: Dict[str, any], num_partitions: int):
         partitioner = LabelBasedPartitioner(
             num_partitions=num_partitions,
             iid_ratio = cfg["iid_ratio"],
-            x = cfg["x_non_iid"]
+            x = cfg["x_non_iid"],
+            balance_partitions=cfg["balanced"],
+            iid_fraction = 0.5 # TODO pass as argument.
         )
     else:
         raise ValueError(f"Partitioner {partitioner} not supported") 
@@ -271,13 +273,17 @@ def compute_merkle_root(dataloader: DataLoader) -> str:
     """
     # Step 1: Hash each image in the dataset
     leaf_hashes = []
-    for images, labels in dataloader:
+    for batch in dataloader:
+        feature, label = list(batch.keys())
+        images, labels = batch[feature], batch[label]
+
         # Flatten images and convert to bytes
         for image, label in zip(images, labels):
             image_bytes = image.numpy().tobytes()
             label_bytes = label.numpy().tobytes()
             combined_data = image_bytes + label_bytes
-            leaf_hashes.append(hash(int.to_bytes(combined_data, 64, "big")))
+            #leaf_hashes.append(hash(int.to_bytes(combined_data, 64, "big")))
+            leaf_hashes.append(hash(combined_data))
             
     
     # Step 2: Build the Merkle tree

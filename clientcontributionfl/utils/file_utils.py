@@ -99,7 +99,7 @@ def check_arguments(args):
         _check_num_rounds(args.num_rounds)
         _check_num_clients(args.num_nodes)
         _check_iid_ratio(args.iid_ratio)
-        _check_dishonest(args.dishonest)
+        _check_dishonest(args.dishonest, args.partitioner)
         _check_fraction_fit(args.fraction_fit)
         _check_d(
             c=args.fraction_fit,
@@ -107,6 +107,7 @@ def check_arguments(args):
             iid_ratio=args.iid_ratio,
             d=args.d
         )
+        _check_balanced(args.partitioner, args.balanced)
                 
         return True
     except ValueError as e:
@@ -138,8 +139,9 @@ def _check_iid_ratio(iid_ratio: float):
         raise ValueError("IID ratio must be between 0.0 and 1.0 (inclusive)")
     return True
 
-def _check_dishonest(val: bool):
-    # TODO check that val is used only when partitioner is iid_and_non_iid    
+def _check_dishonest(dishonest: bool, partitioner):
+    if dishonest and partitioner != "iid_and_non_iid":
+        raise ValueError("Dishonest flag can only be used with iid_and_non_iid partitioner.")
     return True
 
 def _check_d(c: int, k: int, iid_ratio: int, d: int):
@@ -171,4 +173,9 @@ def _check_d(c: int, k: int, iid_ratio: int, d: int):
 def _check_fraction_fit(c: float):
     if not 0.0 <= c <= 1.0:
         raise ValueError("Fraction fit must be between 0.0 and 1.0 (inclusive)")
+    return True
+
+def _check_balanced(partitioner: str, balanced: bool):
+    if balanced and partitioner != "iid_and_non_iid":
+        raise ValueError("Balanced flag can only be used with iid_and_non_iid partitioner.")
     return True

@@ -2,8 +2,8 @@ from typing import List, Dict, Union, Optional
 from datasets import Dataset
 from collections import defaultdict
 from flwr_datasets.partitioner.partitioner import Partitioner
-import random
 import numpy as np
+
 
 class LabelBasedPartitioner(Partitioner):
     """
@@ -13,7 +13,9 @@ class LabelBasedPartitioner(Partitioner):
     def __init__(
             self, 
             num_partitions: int, 
-            iid_ratio: int, 
+            iid_ratio: float, 
+            iid_fraction: float = 1.0,
+            balance_partitions: bool = True,
             x: int = 2,
             seed: Optional[int] = 42,
     ):
@@ -24,8 +26,12 @@ class LabelBasedPartitioner(Partitioner):
         ----------
         num_partitions : int
             Total number of partitions (clients).
-        iid_ratio : int
+        iid_ratio : float
             Ratio of clients with IID data.
+        iid_fraction : float
+            Fraction of total data allocated to IID clients (relative to non-IID clients).
+        balance_partitions : bool
+            If True, all partitions will have the same number of samples.
         x : int
             Number of classes per non-IID client.
         seed: int
@@ -36,6 +42,8 @@ class LabelBasedPartitioner(Partitioner):
         self._num_partitions = num_partitions
         self._check_num_partitions_greater_than_zero()
         self._iid_ratio = self._init_iid_ratio(iid_ratio)
+        self._iid_data_fraction = self._init_iid_fraction(iid_fraction)
+        self._balance_partitions = balance_partitions
         self._x = x
         self._seed = seed
         self._rng = np.random.default_rng(seed=self._seed)  
@@ -49,10 +57,15 @@ class LabelBasedPartitioner(Partitioner):
         """Return the total number of partitions."""
         return self._num_partitions
 
-    def _init_iid_ratio(self, iid_ratio : Union[float, int]) -> int:
+    def _init_iid_ratio(self, iid_ratio: float) -> float:
         if not 0.0 <= iid_ratio <= 1.0:
-            raise ValueError("iid ratio must be between 0 and 1")
+            raise ValueError("IID ratio must be between 0 and 1.")
         return iid_ratio
+
+    def _init_iid_fraction(self, iid_fraction: float) -> float:
+        if not 0.0 < iid_fraction <= 1.0:
+            raise ValueError("IID fraction must be between 0 (exclusive) and 1 (inclusive).")
+        return iid_fraction
 
     def _get_class_indices(self, dataset: Dataset) -> Dict[int, List[int]]:
         """Get a mapping of class labels to their sample indices."""
@@ -66,26 +79,47 @@ class LabelBasedPartitioner(Partitioner):
         class_indices = self._get_class_indices(self.dataset)
         feature_name = self.dataset.column_names[0]
         all_indices = list(range(len(self.dataset[feature_name])))
-        num_samples = len(self.dataset) // self._num_partitions
-        iid_clients = self._num_partitions * self._iid_ratio
+        
+        # Total number of samples in dataset
+        total_samples = len(self.dataset)
+        
+        # Determine the number of IID and non-IID clients
+        num_iid_clients = int(self._num_partitions * self._iid_ratio)
+        num_non_iid_clients = self._num_partitions - num_iid_clients
+        
+        # Calculate the number of samples for IID and non-IID clients
+        if self._balance_partitions:
+            samples_per_client = total_samples // self._num_partitions
+            iid_samples_per_client = samples_per_client
+            non_iid_samples_per_client = samples_per_client
+        else:
+            iid_samples_per_client = int((total_samples * self._iid_data_fraction) / num_iid_clients)
+            non_iid_samples_per_client = int((total_samples * (1 - self._iid_data_fraction)) / num_non_iid_clients)
+
         for partition_id in range(self.num_partitions):
-            if partition_id < iid_clients:
+            if partition_id < num_iid_clients:
                 # IID setting
-                selected_indices = self._rng.choice(all_indices, size=num_samples, replace=False)
+                selected_indices = self._rng.choice(
+                    all_indices, size=iid_samples_per_client, replace=False
+                ).tolist()
             else:
                 # Non-IID setting
                 num_classes = len(class_indices)
-                self._x = min(self._x, num_classes) # in the case user passes wrong x
+                self._x = min(self._x, num_classes)  # Ensure `x` does not exceed available classes
                 selected_classes = self._rng.choice(range(num_classes), size=self._x, replace=False)
+                
                 selected_indices = []
                 for cls in selected_classes:
                     selected_indices += self._rng.choice(
                         class_indices[cls], 
-                        size=min(num_samples // self._x, len(class_indices[cls])),
+                        size=min(non_iid_samples_per_client // self._x, len(class_indices[cls])),
                         replace=False
                     ).tolist()
+                
                 # Shuffle to avoid order bias
-                selected_indices = self._rng.choice(selected_indices, size=min(num_samples,len(selected_indices)), replace=False).tolist()
+                selected_indices = self._rng.choice(
+                    selected_indices, size=min(non_iid_samples_per_client, len(selected_indices)), replace=False
+                ).tolist()
 
             self._precomputed_partitions[partition_id] = selected_indices
 
@@ -113,8 +147,7 @@ class LabelBasedPartitioner(Partitioner):
 
         return self.dataset.select(selected_indices)
     
-
     def _check_num_partitions_greater_than_zero(self) -> None:
-        """Test num_partition left sides correctness."""
+        """Ensure num_partitions is greater than zero."""
         if not self._num_partitions > 0:
-            raise ValueError("The number of partitions needs to be greater than zero.")
+            raise ValueError("The number of partitions must be greater than zero.")

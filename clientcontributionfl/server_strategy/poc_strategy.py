@@ -20,7 +20,7 @@ from flwr.common.logger import log
 from logging import INFO, WARNING
 
 from typing import List, Tuple, Union, Optional, Dict, Callable
-import random
+
 import numpy as np
 
 

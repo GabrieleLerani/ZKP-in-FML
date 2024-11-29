@@ -10,6 +10,7 @@ def list_of_strings(arg):
 
 def run_simulation(args, strategy):
 
+
     command = [
         "flower-simulation",           
         "--app", ".",                  
@@ -17,6 +18,7 @@ def run_simulation(args, strategy):
         "--run-config", (              
             f'num_rounds={args.num_rounds} '
             f'partitioner="{args.partitioner}" '
+            f'balanced="{str(args.balanced).lower()}" '
             f'strategy="{strategy}" '
             f'fraction_fit={args.fraction_fit} '
             f'iid_ratio={args.iid_ratio} '
@@ -25,7 +27,7 @@ def run_simulation(args, strategy):
             f'd={args.d}'
         )
     ]
-    print(command)
+    
     result = subprocess.run(command, stderr=subprocess.STDOUT, stdout=None, text=True)
     
     if result.returncode != 0:
@@ -43,6 +45,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run federated learning simulations.")
     parser.add_argument("--strategies", type=list_of_strings, default="FedAvg", help="Comma-separated list of strategies to simulate. Available are FedAvg, ZkAvg, ContAvg")
     parser.add_argument("--partitioner",choices=partitioner_choices, default="iid_and_non_iid", help="Type of partitioner. Check Flower docs for more details.")
+    parser.add_argument("--balanced", action="store_true",default=False, help="If True, all partitions will have the same number of samples. Applicable only with iid_and_non_iid partitioner.")
     parser.add_argument("--num_rounds", type=int, default=10, help="Number of rounds for the simulation.")
     parser.add_argument("--num_nodes", type=int, default=10, help="Number of clients for the simulation.")
     parser.add_argument("--fraction_fit", type=float, default=0.3, help="Fraction of clients selected for training. Such values can be modified depending on the strategy.")
@@ -58,8 +61,8 @@ def main():
 
     # 3. Run simulation for each strategy
     strategies = args.strategies
-    # for strategy in strategies:
-    #     run_simulation(args, strategy)
+    for strategy in strategies:
+        run_simulation(args, strategy)
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
@@ -69,7 +72,8 @@ def main():
         "iid_ratio": args.iid_ratio,
         "dataset_name": args.dataset,
         "partitioner": args.partitioner,
-        "dishonest":args.dishonest
+        "balanced": args.balanced,
+        "dishonest": args.dishonest
     })
 
 
