@@ -3,6 +3,65 @@ import os
 import json
 from typing import List
 
+
+def generate_file_suffix(params: dict) -> str:
+    """
+    Generate a file suffix based on the provided parameters.
+
+    Parameters
+    ----------
+    params : dict
+        Dictionary containing the following keys:
+        - num_rounds: int
+        - partitioner: str
+        - dataset: str
+        - secaggplus: bool
+        - alpha: float, optional
+        - x_non_iid: int, optional
+        - iid_ratio: float, optional
+        - dishonest: bool, optional
+        - balanced: bool, optional
+        - iid_data_fraction: float, optional
+
+    Returns
+    -------
+    str
+        Generated file suffix.
+    """
+    num_rounds = params["num_rounds"]
+    partitioner = params["partitioner"]
+    dataset = params["dataset_name"]
+    secaggplus = params.get("secaggplus", False)
+    alpha = params.get("alpha", None)
+    x_non_iid = params.get("x_non_iid", None)
+    iid_ratio = params.get("iid_ratio", None)
+    dishonest = params.get("dishonest", False)
+    balanced = params.get("balanced", False)
+    iid_data_fraction = params.get("iid_data_fraction", None)
+
+    include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" and alpha is not None else "")
+    include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" and x_non_iid is not None else "")
+    include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" and iid_ratio is not None else "")
+    include_dishonest = (f"_dishonest" if dishonest else "")
+    include_sec_agg = ("SecAgg" if secaggplus else "")
+    include_balanced = (f"_bal={balanced}" if partitioner == "iid_and_non_iid" else "")
+    include_iid_data_fraction = (f"_iid_df={iid_data_fraction}" if include_balanced and iid_data_fraction is not None else "")
+
+    file_suffix = (
+        f"R={num_rounds}"
+        f"_P={partitioner}"
+        f"_D={dataset}"
+        + include_sec_agg
+        + include_alpha 
+        + include_x 
+        + include_iid_ratio 
+        + include_dishonest
+        + include_balanced
+        + include_iid_data_fraction
+    )
+    
+    return file_suffix
+
 def cleanup_proofs():
     """Remove the proofs directory and all its contents if it exists."""
     proofs_dir = os.path.join(os.getcwd(), "proofs")

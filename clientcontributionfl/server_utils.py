@@ -110,7 +110,6 @@ def get_strategy(
         testloader: DataLoader
     ) -> Strategy:
 
-    #strategy_class = None
     common_args = {
         'fraction_fit': cfg['fraction_fit'],
         'fraction_evaluate': cfg['fraction_evaluate'],
@@ -122,29 +121,17 @@ def get_strategy(
         'evaluate_metrics_aggregation_fn': get_evaluate_metrics_aggregation(cfg),
     }
 
+    strategy_class = None
+
     if cfg['strategy'] == 'FedAvg':
         strategy_class = FedAvg
-    
-    elif cfg['strategy'] == 'ContAvg':
-        
+    elif cfg['strategy'] in ['ContAvg', 'ZkAvg']:
         common_args["fraction_fit"] = 1.0 
         common_args['selection_thr'] = cfg['selection_thr']
-        strategy_class = ContributionAvg
-
-    elif cfg['strategy'] == 'ZkAvg':
-        
-        common_args["fraction_fit"] = 1.0 
-        common_args['selection_thr'] = cfg['selection_thr']
-
-        strategy_class = ZkAvg
-    
-    elif cfg['strategy'] == 'PoC':
+        strategy_class = ContributionAvg if cfg['strategy'] == 'ContAvg' else ZkAvg
+    elif cfg['strategy'] in ['PoC', 'PoCZk']:
         common_args['d'] = cfg['d']
-        strategy_class = PoC
-    elif cfg['strategy'] == 'PoCZk':
-        
-        common_args['d'] = cfg['d']
-        strategy_class = PoCZk
+        strategy_class = PoC if cfg['strategy'] == 'PoC' else PoCZk
 
     return strategy_class(**common_args)
 

@@ -196,7 +196,7 @@ class PoCZk(ZkAvg):
         for c in clients:
             score = self.client_data[c.cid][1]
             proof_is_valid = self.client_data[c.cid][2]
-            # TODO just not select invalid clients, then use also score
+            
             if proof_is_valid:
                 filtered_clients.append(c)
                 total += score
@@ -207,10 +207,18 @@ class PoCZk(ZkAvg):
         """
         Sample d clients from the client manager using probabilities proportional to their scores.
         """
+        
         if round == 1:
             all_clients = list(client_manager.all().values())
             self.filtered_clients, total = self._filter_clients(all_clients)
-            self.filtered_probabilities = [self.client_data[client.cid][1] / total for client in self.filtered_clients]
+            
+            # probabilities already normalized
+            if len(self.filtered_clients) == len(self.client_data):
+                self.filtered_probabilities = [self.client_data[client.cid][1] for client in self.filtered_clients]    
+            else:
+                self.filtered_probabilities = [self.client_data[client.cid][1] / total for client in self.filtered_clients]
+            
+            PrettyPrinter(indent=4).pprint(self.filtered_probabilities)
         
         sampled_clients = np.random.choice(self.filtered_clients, p=self.filtered_probabilities, size=d, replace=False)
         

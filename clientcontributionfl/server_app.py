@@ -9,6 +9,7 @@ from flwr.server import Driver, LegacyContext, ServerApp, ServerConfig
 from flwr.server.workflow import SecAggPlusWorkflow
 from clientcontributionfl.server_strategy import DefaultWorkflow, PoCWorkflow
 from pprint import PrettyPrinter
+from clientcontributionfl.utils import generate_file_suffix
 
 app = ServerApp()
 
@@ -18,7 +19,6 @@ def main(driver: Driver, context: Context):
     config = context.run_config
     print_config(config)
     
-
     # Step 2: Extract run parameters
     run_params = extract_run_params(config)
     
@@ -53,6 +53,7 @@ def extract_run_params(config):
         "alpha": config.get("alpha", 0.05),
         "x_non_iid": config.get("x_non_iid", 2),
         "iid_ratio": config.get("iid_ratio", 0.5),
+        "iid_data_fraction": config.get("iid_data_fraction", 0.5),
         "dishonest": config.get("dishonest", False),
         "balanced": config.get("balanced", False),
         "dataset_name": config.get("dataset_name", ""),
@@ -72,7 +73,7 @@ def create_workflow(params):
         max_weight=params['max_weight'],
     ) if params['secaggplus'] else None
     
-    if params['strategy_name'] == "PoC":
+    if "PoC" in params['strategy_name']:
         workflow = PoCWorkflow(fit_workflow=fit_workflow)
     else:
         workflow = DefaultWorkflow(fit_workflow=fit_workflow)
@@ -80,35 +81,9 @@ def create_workflow(params):
     return workflow
 
 def save_history(history, params):
-    num_rounds= params['num_rounds']
-    partitioner = params["partitioner"]
-    secaggplus=params['secaggplus']
-    alpha = params["alpha"]
-    x_non_iid = params["x_non_iid"]
-    iid_ratio = params["iid_ratio"]
-    dishonest = params["dishonest"]
-    strategy = params["strategy_name"]
-    dataset = params["dataset_name"]
-    balanced = params["balanced"]
 
-    include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
-    include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
-    include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
-    include_dishonest = (f"_dishonest" if dishonest else "")
-    include_sec_agg = ("SecAgg" if secaggplus else "")
-    include_balanced = (f"_bal={balanced}" if partitioner == "iid_and_non_iid" else "")
-    
-    file_suffix = (
-        f"R={num_rounds}"
-        f"_P={partitioner}"
-        f"_D={dataset}"
-        + include_sec_agg
-        + include_alpha 
-        + include_x 
-        + include_iid_ratio 
-        + include_dishonest
-        + include_balanced
-    )
+    strategy = params["strategy_name"]
+    file_suffix = generate_file_suffix(params)
 
     save_dir = Path(params['save_path']) / Path("simulation") / Path(file_suffix.lstrip('_'))
     save_dir.mkdir(parents=True, exist_ok=True)

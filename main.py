@@ -10,7 +10,6 @@ def list_of_strings(arg):
 
 def run_simulation(args, strategy):
 
-
     command = [
         "flower-simulation",           
         "--app", ".",                  
@@ -22,12 +21,14 @@ def run_simulation(args, strategy):
             f'strategy="{strategy}" '
             f'fraction_fit={args.fraction_fit} '
             f'iid_ratio={args.iid_ratio} '
+            f'x_non_iid={args.x} '
+            f'iid_data_fraction={args.iid_data_fraction} '
             f'dishonest={str(args.dishonest).lower()} '
             f'dataset_name="{args.dataset}" '
-            f'd={args.d}'
+            f'd={args.d} '
+            f'thr={args.thr}'
         )
     ]
-    
     
     result = subprocess.run(command, stderr=subprocess.STDOUT, stdout=None, text=True)
     
@@ -54,7 +55,10 @@ def main():
     parser.add_argument("--iid_data_fraction", type=float, default=0.5, help="Fraction of total data allocated to IID clients (relative to non-IID clients).")
     parser.add_argument("--dishonest", action="store_true",default=False, help="If true all non-IID node under iid_and_non_iid partitioner are dishonest and submit a fake score to the server.")
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "CIFAR10", "FMNIST"], help="Dataset to use for the simulation.")
+    parser.add_argument("--x", type=int, default=2, help="Number of labels of non iid clients.")
     parser.add_argument("--d", type=int, default=5, help="Size of the candidate set used in PoC. Must be: max(CK, 1) <= d <= K where C is the fraction_fit of clients")
+    parser.add_argument("--thr", type=int, default=400, help="Num of minimum label to have positive contribution. Used only for ZkAvg, PocZk, ContAvg strategies.")
+    parser.add_argument("--smoothed_plot", action="store_true", default=False, help="If true plots are computed with a moving average to highlight the trend.")
     args = parser.parse_args()
 
     if not check_arguments(args):
@@ -63,8 +67,8 @@ def main():
 
     # 3. Run simulation for each strategy
     strategies = args.strategies
-    for strategy in strategies:
-        run_simulation(args, strategy)
+    # for strategy in strategies:
+    #     run_simulation(args, strategy)
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
@@ -75,7 +79,9 @@ def main():
         "dataset_name": args.dataset,
         "partitioner": args.partitioner,
         "balanced": args.balanced,
-        "dishonest": args.dishonest
+        "dishonest": args.dishonest,
+        "iid_data_fraction": args.iid_data_fraction,
+        "smoothed_plots": args.smoothed_plot
     })
 
 

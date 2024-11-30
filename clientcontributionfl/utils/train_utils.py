@@ -8,6 +8,11 @@ from flwr.common.config import get_project_config
 from flwr.common import (NDArrays)
 from functools import reduce
 from enum import Enum, auto
+from .file_utils import generate_file_suffix
+
+
+def moving_average(data, window_size):
+    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
 
 def get_model_class(models, dataset_name):
     if dataset_name in ["MNIST", "FMNIST"]:
@@ -94,37 +99,12 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
         List of strategies to compare
     """
 
-    num_rounds=config['num_rounds']
-    partitioner=config['partitioner']
-    secaggplus=config['secaggplus']
-    alpha=config['alpha']
-    x_non_iid = config["x_non_iid"]
-    iid_ratio = config["iid_ratio"]
-    dishonest = config["dishonest"]
     dataset = config["dataset_name"]
-    balanced = config["balanced"]
-
-    include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" else "")
-    include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" else "")
-    include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" else "")
-    include_dishonest = (f"_dishonest" if dishonest else "")
-    include_sec_agg = ("SecAgg" if secaggplus else "")
-    include_balanced = (f"_bal={balanced}" if partitioner == "iid_and_non_iid" else "")
+    smoothed_plot = config["smoothed_plots"]
+    file_suffix = generate_file_suffix(config)
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
     
-    file_suffix = (
-        f"R={num_rounds}"
-        f"_P={partitioner}"
-        f"_D={dataset}"
-        + include_sec_agg
-        + include_alpha 
-        + include_x 
-        + include_iid_ratio 
-        + include_dishonest
-        + include_balanced
-    )
-
     result_path = save_plot_path / Path("simulation") / Path(file_suffix.lstrip('_'))
 
     for strategy in strategies:
@@ -133,14 +113,21 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
         
         history = np.load(file_path, allow_pickle=True).item()
         
-        # Plot centralized accuracy
         rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
-        ax1.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=strategy)
-
-        # Plot centralized loss
         rounds_loss, values_loss = zip(*history.losses_centralized)
         
-        ax2.plot(np.asarray(rounds_loss), np.asarray(values_loss), label=strategy)
+        rounds_acc, values_acc = np.asarray(rounds_acc), np.asarray(values_acc)
+        rounds_loss, values_loss = np.asarray(rounds_loss), np.asarray(values_loss)
+        
+        if smoothed_plot:
+            window_size = 3
+            values_acc = moving_average(values_acc, window_size)
+            values_loss = moving_average(values_loss, window_size)
+            rounds_acc = rounds_acc[:len(values_acc)]
+            rounds_loss = rounds_loss[:len(values_loss)]
+        
+        ax1.plot(rounds_acc, values_acc, label=strategy)
+        ax2.plot(rounds_loss, values_loss, label=strategy)
 
     ax1.set_title(f"Centralized Validation Accuracy - {dataset}")
     ax1.set_xlabel("Rounds")
@@ -152,7 +139,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax2.set_xlabel("Rounds")
     ax2.set_ylabel("Loss")
     ax2.legend(loc="upper right")
-    ax2.set_ylim([0, 5])
+    ax2.set_ylim([0, 9])
 
     plt.tight_layout()
     
