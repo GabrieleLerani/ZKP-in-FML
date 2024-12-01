@@ -1,6 +1,6 @@
 import subprocess
 import argparse
-from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files, check_arguments
+from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files, check_arguments, plot_accuracy_for_different_x
 from flwr.common.config import get_project_config
 from pathlib import Path
 
@@ -67,8 +67,8 @@ def main():
 
     # 3. Run simulation for each strategy
     strategies = args.strategies
-    # for strategy in strategies:
-    #     run_simulation(args, strategy)
+    for strategy in strategies:
+        run_simulation(args, strategy)
 
     # 4. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
@@ -95,3 +95,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # results_path = Path("results/simulation")
+    # plot_accuracy_for_different_x(results_path, "history_S=PoC") 

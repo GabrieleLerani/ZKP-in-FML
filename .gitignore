@@ -10,6 +10,7 @@ data/
 # Hydra
 outputs/
 
+zk_test/
 
 # Python byte-compiled files
 __pycache__/

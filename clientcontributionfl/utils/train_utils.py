@@ -11,15 +11,6 @@ from enum import Enum, auto
 from .file_utils import generate_file_suffix
 
 
-def moving_average(data, window_size):
-    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
-
-def get_model_class(models, dataset_name):
-    if dataset_name in ["MNIST", "FMNIST"]:
-        return getattr(models, "NetMnist")
-    elif dataset_name == "CIFAR10":
-        return getattr(models, "NetCifar10")
-
 class SelectionPhase(Enum):
     """Enum to track the current phase of the client selection process"""
     TRAIN_ACTIVE_SET = auto()
@@ -28,6 +19,15 @@ class SelectionPhase(Enum):
     CANDIDATE_SELECTION = auto()
     SCORE_AGGREGATION = auto() 
     DATASET_SIZE_AGGREGATION = auto() # used only in PoC
+
+def moving_average(data, window_size):
+    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
+
+def get_model_class(models, dataset_name):
+    if dataset_name in ["MNIST", "FMNIST"]:
+        return getattr(models, "NetMnist")
+    elif dataset_name == "CIFAR10":
+        return getattr(models, "NetCifar10")
 
 def string_to_enum(enum_class: SelectionPhase, enum_str: str) -> SelectionPhase:
     """Convert a given string the intended enum class, used only in PoC"""
@@ -146,6 +146,45 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     plt.savefig(result_path / "comparison.png")
     plt.close()
 
+
+def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
+    """
+    Plots accuracy from specified paths for different values of X.
+
+    Args:
+        save_plot_path: Path to the directory containing the accuracy files.
+        filename: The base filename to load the accuracy data from.
+    """
+    x_values = [0.1, 0.3, 0.5]
+    iid_ratio = [0.3, 0.5, 0.7]
+    plt.figure(figsize=(10, 6))
+
+    for x, iid_ratio in zip(x_values, iid_ratio):
+        file_path = save_plot_path / f"R=40_P=iid_and_non_iid_D=FMNIST_x=1_iid_ratio={iid_ratio}_bal=False_iid_df={x}/{filename}.npy"
+        
+        # Load the history data
+        history = np.load(file_path, allow_pickle=True).item()
+        
+        # Extract rounds and accuracy values
+        rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
+        
+        # Apply moving average
+        window_size = 4  # You can adjust the window size as needed
+        values_acc = moving_average(np.asarray(values_acc), window_size)
+        rounds_acc = rounds_acc[:len(values_acc)]  # Adjust rounds to match the length of smoothed values
+        
+        # Plot the accuracy
+        plt.plot(np.asarray(rounds_acc), values_acc, label=f"iid_ratio={iid_ratio}")
+
+    plt.title("PoC centralized accuracy - FMNIST")
+    plt.xlabel("Rounds")
+    plt.ylabel("Accuracy")
+    plt.legend(loc="lower right")
+    plt.ylim([0.1, 1])
+    plt.tight_layout()
+    
+    plt.savefig(save_plot_path / "accuracy_comparison.png")
+    plt.close()
 
 # TODO check if this should be removed
 def read_scores(plots_folder='plots/scores'):

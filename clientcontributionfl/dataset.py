@@ -259,7 +259,7 @@ def get_merkle_proof(tree: list[list[bytes]], leaf_index: int) -> Tuple[list[byt
         directions.append(leaf_index % 2)  # 0 if left, 1 if right
         proof.append([tree[level][sibling_index],(level,sibling_index)])
         leaf_index //= 2
-    return proof, directions
+    return proof, directions, tree[0][leaf_index]
 
 def compute_merkle_root(dataloader: DataLoader) -> str:
     """
