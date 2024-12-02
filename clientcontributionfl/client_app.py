@@ -9,6 +9,22 @@ from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, Contrib
 import clientcontributionfl.models as models
 from clientcontributionfl.utils import get_model_class
 
+
+def create_client(strategy: str, **kwargs) -> Client:
+    client_classes = {
+        "FedAvg": FedAvgClient,
+        "ZkAvg": ZkClient,
+        "ContAvg": ContributionClient,
+        "PoC": PoCClient,
+        "PoCZk": PoCZkClient,
+    }
+    
+    client_class = client_classes.get(strategy)
+    if client_class:
+        return client_class(**kwargs).to_client()
+    else:
+        raise ValueError(f"Unknown strategy: {strategy}")
+
 def client_fn(context: Context) -> Client:
     
     # usally a random number instantiated by the server
@@ -22,102 +38,40 @@ def client_fn(context: Context) -> Client:
     # load data with FederatedDataset
     train_loader, test_loader, num_classes = load_data(config, partition_id, num_partitions)
 
-
     model_class = get_model_class(models, config["dataset_name"])
 
-    if config["strategy"] == "FedAvg":
-        
-        return FedAvgClient(
-            node_id=str(node_id),
-            partition_id=partition_id,
-            trainloader=train_loader,
-            testloader=test_loader,
-            num_classes=num_classes,
-            config=config,
-            model_class=model_class
-        ).to_client()
+    # Prepare common arguments for client instantiation
+    common_args = {
+        "node_id": str(node_id),
+        "partition_id": partition_id,
+        "trainloader": train_loader,
+        "testloader": test_loader,
+        "num_classes": num_classes,
+        "config": config,
+        "model_class": model_class,
+    }
 
-    elif config["strategy"] == "ZkAvg":
-        
+    if config["strategy"] in ["FedAvg", "PoC"]:
+        return create_client(config["strategy"], **common_args)
+
+    elif config["strategy"] in ["ZkAvg", "ContAvg", "PoCZk"]:
         partition_counts = compute_partition_counts(
             data_loader=train_loader,
             partition_id=partition_id,
             num_classes=num_classes
         )
-
-        iid_clients = num_partitions * config["iid_ratio"]
-        
-        dishonest = config["dishonest"]
-
-        return ZkClient(
-            node_id=str(node_id),
-            partition_id=partition_id,
-            trainloader=train_loader,
-            testloader=test_loader,
-            partition_label_counts=partition_counts,
-            num_classes=num_classes,
-            dishonest=partition_id >= iid_clients if dishonest else False,
-            config=config,
-            model_class=model_class
-        ).to_client()
-
-    elif config["strategy"] == "ContAvg":
-        
-        partition_counts = compute_partition_counts(
-            data_loader=train_loader,
-            partition_id=partition_id,
-            num_classes=num_classes
-        )
-
         iid_clients = num_partitions * config["iid_ratio"]
         dishonest = config["dishonest"]
-
-        return ContributionClient(
-            node_id=str(node_id),
-            partition_id=partition_id,
-            trainloader=train_loader,
-            testloader=test_loader,
-            partition_label_counts=partition_counts,
-            num_classes=num_classes,
-            dishonest=partition_id >= iid_clients if dishonest else False, # set as many dishonest as non iid clients
-            config=config,
-            model_class=model_class
-        ).to_client()
-    
-    elif config["strategy"] == "PoC":
         
-        return PoCClient(
-            node_id=str(node_id),
-            partition_id=partition_id,
-            trainloader=train_loader,
-            testloader=test_loader,
-            num_classes=num_classes,
-            config=config,
-            model_class=model_class
-        ).to_client()
-
-    elif config["strategy"] == "PoCZk":
+        # Add specific arguments for ZkAvg, ContAvg, and PoCZk
+        common_args.update({
+            "partition_label_counts": partition_counts,
+            "dishonest": partition_id >= iid_clients if dishonest else False,
+        })
         
-        partition_counts = compute_partition_counts(
-            data_loader=train_loader,
-            partition_id=partition_id,
-            num_classes=num_classes
-        )
+        return create_client(config["strategy"], **common_args)
 
-        iid_clients = num_partitions * config["iid_ratio"]
-        dishonest = config["dishonest"]
-
-        return PoCZkClient(
-            node_id=str(node_id),
-            partition_id=partition_id,
-            trainloader=train_loader,
-            testloader=test_loader,
-            partition_label_counts=partition_counts,
-            num_classes=num_classes,
-            dishonest=partition_id >= iid_clients if dishonest else False,
-            config=config,
-            model_class=model_class
-        ).to_client()
+    raise ValueError(f"Unknown strategy: {config['strategy']}")
     
     
     

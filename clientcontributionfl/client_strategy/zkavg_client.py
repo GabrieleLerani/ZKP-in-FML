@@ -164,8 +164,6 @@ class ZkClient(NumPyClient):
             if self.dishonest: 
                 forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), self.dishonest_value)
 
-            
-
         else:
             # Train the model in subsequent rounds
             optimizer = torch.optim.SGD(self.model.parameters(), lr=config["lr"])

@@ -2,14 +2,14 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
-from flwr.server.history import History
-from typing import Optional, List
-from flwr.common.config import get_project_config
-from flwr.common import (NDArrays)
+from typing import List, Dict
+
+from flwr.common import NDArrays
 from functools import reduce
 from enum import Enum, auto
 from .file_utils import generate_file_suffix
-
+from flwr_datasets.visualization import plot_label_distributions
+from flwr_datasets.partitioner import Partitioner
 
 class SelectionPhase(Enum):
     """Enum to track the current phase of the client selection process"""
@@ -19,6 +19,7 @@ class SelectionPhase(Enum):
     CANDIDATE_SELECTION = auto()
     SCORE_AGGREGATION = auto() 
     DATASET_SIZE_AGGREGATION = auto() # used only in PoC
+
 
 def moving_average(data, window_size):
     return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
@@ -69,7 +70,7 @@ def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distr
         
         history = np.load(file_path, allow_pickle=True).item()
 
-        # Plot centralized accuracy
+        
         rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
         plt.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=f"α = {alpha}")
 
@@ -161,17 +162,13 @@ def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
 
     for x, iid_ratio in zip(x_values, iid_ratio):
         file_path = save_plot_path / f"R=40_P=iid_and_non_iid_D=FMNIST_x=1_iid_ratio={iid_ratio}_bal=False_iid_df={x}/{filename}.npy"
-        
-        # Load the history data
         history = np.load(file_path, allow_pickle=True).item()
-        
-        # Extract rounds and accuracy values
         rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
         
         # Apply moving average
         window_size = 4  # You can adjust the window size as needed
         values_acc = moving_average(np.asarray(values_acc), window_size)
-        rounds_acc = rounds_acc[:len(values_acc)]  # Adjust rounds to match the length of smoothed values
+        rounds_acc = rounds_acc[:len(values_acc)]  
         
         # Plot the accuracy
         plt.plot(np.asarray(rounds_acc), values_acc, label=f"iid_ratio={iid_ratio}")
@@ -186,14 +183,15 @@ def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
     plt.savefig(save_plot_path / "accuracy_comparison.png")
     plt.close()
 
-# TODO check if this should be removed
-def read_scores(plots_folder='plots/scores'):
-    scores = {}
-    for file_name in os.listdir(plots_folder):
-        if file_name.endswith('.npy'):
-            distribution_type = file_name.replace('.npy', '')
-            scores[distribution_type] = np.load(os.path.join(plots_folder, file_name), allow_pickle=True).item()
-    return scores
+
+def plot_label_partitioning(partitioner: Partitioner, config: Dict[str, any], num_partitions: int):
+    """Plot the label distribution."""
+    plot_label_distributions(partitioner, label_name="label", verbose_labels=True, legend=True)
+    label_dist_path = os.path.join(config["save_path"], "label_partitioner")
+    if not os.path.exists(label_dist_path):
+        os.makedirs(label_dist_path)
+    plt.savefig(f"{label_dist_path}/{config['partitioner']}_P={num_partitions}.png")
+
 
 
 def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
