@@ -6,6 +6,22 @@ class Zokrates:
     """A wrapper class for interacting with the ZoKrates zero-knowledge proof system.
 
     This class provides an interface to compile ZoKrates programs, generate proofs, and verify them.
+
+    Example of usage:
+    .. code-block:: python
+        # Initialize Zokrates with a working directory
+        zokrates = Zokrates()
+
+        # Compile the ZoKrates program and set up the keys
+        zokrates.setup("path/to/your/zok_file.zok")
+
+        # Generate a proof with some arguments
+        proof = zokrates.generate_proof(("arg1", "arg2", "arg3"))
+        print("Generated Proof:", proof)
+
+        # Verify the generated proof
+        verification_result = zokrates.verify_proof("path/to/your/verification/key")
+        print("Verification Result:", verification_result)
     """
 
     def __init__(self, working_dir : str = None):
@@ -38,7 +54,7 @@ class Zokrates:
         cmd_parts = command.split(' ', 1)
         full_command = f"~/.zokrates/bin/zokrates {cmd_parts[1]}" if len(cmd_parts) > 1 else "/usr/local/bin/zokrates"
         
-        # TODO test if it works
+        
         if path != None:
             os.makedirs(path, exist_ok=True)
 

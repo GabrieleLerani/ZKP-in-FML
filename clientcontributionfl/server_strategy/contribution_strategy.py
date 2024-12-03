@@ -32,8 +32,7 @@ class ContributionAvg(FedAvg):
 
 
     Attributes:
-        client_data (defaultdict): A dictionary storing verification key paths and contribution scores for each client.
-        zk (Zokrates): An instance of the Zokrates class used for zero-knowledge proof operations.
+        client_data (defaultdict): A dictionary storing contribution scores for each client.
         discarding_threshold (float): A threshold below which clients are considered to have poor contributions and are filtered out.
     """
 

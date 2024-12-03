@@ -230,17 +230,6 @@ class PoCZk(ZkAvg):
         sampled_clients = np.random.choice(self.filtered_clients, p=self.filtered_probabilities, size=d, replace=False)
         
         return sampled_clients
-
-    def _get_client_losses(self, candidate_set: List[ClientProxy], parameters: Parameters) -> Dict[str, float]:
-        """
-        Request clients to compute their local losses and return the results as a dictionary.
-        """
-        client_losses = {}
-        for client in candidate_set:
-            # Simulate loss computation (replace with real interaction if available)
-            loss = self._simulate_client_loss(client, parameters)
-            client_losses[client.cid] = loss
-        return client_losses
     
     
     def _select_high_loss_clients(
@@ -480,17 +469,6 @@ class PoC(FedAvg):
         
         return sampled_clients
 
-    def _get_client_losses(self, candidate_set: List[ClientProxy], parameters: Parameters) -> Dict[str, float]:
-        """
-        Request clients to compute their local losses and return the results as a dictionary.
-        """
-        client_losses = {}
-        for client in candidate_set:
-            # Simulate loss computation (replace with real interaction if available)
-            loss = self._simulate_client_loss(client, parameters)
-            client_losses[client.cid] = loss
-        return client_losses
-    
     
     def _select_high_loss_clients(
         self, client_losses: Dict[str, float], m: int

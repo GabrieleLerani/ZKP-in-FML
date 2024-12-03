@@ -76,15 +76,16 @@ def hash_batch(batch) -> int:
 
 def compute_tree_leaves_batch(dataloader: DataLoader) -> List[int]:
     """Compute leaves of the tree as hash of each batch in dataloader."""
-    # leaf_hashes = [hash_batch(b) for b in dataloader]
-    # return leaf_hashes
+    
     leaf_hashes = [hash_batch(b) for b in dataloader]
 
     if not is_power_of_two(len(leaf_hashes)):
         next_power_of_two = 1 << (len(leaf_hashes) - 1).bit_length()
+        
+        # pad if no power of two number of leaves
         while len(leaf_hashes) < next_power_of_two:
             leaf_hashes.append(leaf_hashes[-1])
-            
+
     return leaf_hashes
 
 def compute_tree_leaves_samples(dataloader: DataLoader) -> List[int]:

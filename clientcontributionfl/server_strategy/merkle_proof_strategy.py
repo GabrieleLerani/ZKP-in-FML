@@ -26,6 +26,12 @@ import os
 
 
 class MerkleProofAvg(FedAvg):
+    """
+        Aggregates merkle proofs to ensure the integrity and authenticity of the data received from clients.
+        By verifying the merkle proofs, the server can ensure that the data received from clients is genuine 
+        and has not been tampered with during transmission.
+        This validation step adds an additional layer of security to the federated learning process.
+    """
 
     
     def __init__(self, *args, **kwargs):
@@ -34,10 +40,7 @@ class MerkleProofAvg(FedAvg):
         self.zk: Zokrates = Zokrates()
         
 
-    #def _aggregate_merkle_proofs(self, fit_metrics: List[Tuple[int, Dict[str, Scalar]]]):
     def _validate_merkle_proofs(self, results: list[tuple[ClientProxy, FitRes]]):
-        """Aggregates merkle proofs."""
-        
         for c, res in results:
             metrics = res.metrics
             proof_bytes = metrics["proof"]
@@ -85,7 +88,6 @@ class MerkleProofAvg(FedAvg):
         # validate received proofs
         if server_round == 1:
             self._validate_merkle_proofs(results)
-            #PrettyPrinter(indent=4).pprint(self.client_proofs)
             self.fraction_fit = 0.3 
 
         return parameters_aggregated, {}
