@@ -52,6 +52,7 @@ class ZkClient(NumPyClient):
         num_classes: int,
         dishonest: bool,
         model_class: nn.Module,
+        zok_file_path: str,
         config: Dict[str, Scalar]
     ) -> None:
         """
@@ -93,7 +94,11 @@ class ZkClient(NumPyClient):
         
         # Set up the path for storing ZKP proofs
         self.path_proof_dir = os.path.join("proofs", f"client_{self.node_id}")
-        self.zk = Zokrates(self.path_proof_dir)
+        self.zok_file_path=zok_file_path
+        self.zk = Zokrates(
+            working_dir=self.path_proof_dir
+        ) 
+
 
     def compute_zkp_contribution(self, score):
         """Compute and generate a zero-knowledge proof for the client's contribution.
@@ -105,15 +110,20 @@ class ZkClient(NumPyClient):
         mean_val = int(sum(counts) / len(counts))
         
         # Setup and generate the zero-knowledge proof
-        self.zk.setup()
-        self.zk.generate_proof(
-            counts=counts, 
-            scale=self.scale, 
-            beta=self.beta, 
-            mean_val=mean_val, 
-            thr=self.thr, 
-            score=score
+        self.zk.setup(zok_file_path=self.zok_file_path)
+
+        # format arguments to match generate_proof params.
+        counts = " ".join(map(str, counts))
+        arguments = (
+            counts, 
+            self.scale, 
+            self.beta, 
+            mean_val, 
+            self.thr, 
+            score
         )
+
+        self.zk.generate_proof(arguments)
 
     def set_parameters(self, parameters):
         """Receive parameters and apply them to the local model.
@@ -158,7 +168,7 @@ class ZkClient(NumPyClient):
                 thr=self.thr
             )
             self.compute_zkp_contribution(score)
-            params[f"vrfkey_{self.node_id}"] = self.path_proof_dir
+            params["vrfkey"] = self.path_proof_dir
             
             # add additional value
             if self.dishonest: 

@@ -1,42 +1,14 @@
 import os
 import subprocess
-from clientcontributionfl.utils import compute_score
-from logging import INFO, DEBUG
-from flwr.common.logger import log
+from typing import Tuple
 
 class Zokrates:
     """A wrapper class for interacting with the ZoKrates zero-knowledge proof system.
 
     This class provides an interface to compile ZoKrates programs, generate proofs, and verify them.
-    It is used in the federated learning system to generate zero-knowledge proofs of client contributions
-    without revealing the actual dataset value.
-
-    Attributes:
-        working_dir (str): Directory where ZoKrates files and proofs will be stored
-
-    Example:
-        >>> # Initialize ZoKrates with a working directory
-        >>> zokrates = Zokrates("proofs/client_1")
-        >>> 
-        >>> # Set up the proving system
-        >>> zokrates.setup()
-        >>> 
-        >>> # Generate a proof with client contribution data
-        >>> counts = [300, 100, 6000, 1000, 4000]
-        >>> proof = zokrates.generate_proof(
-        ...     counts=counts,
-        ...     scale=1000,
-        ...     beta=1, 
-        ...     mean_val=26400,
-        ...     thr=100,
-        ...     score=42
-        ... )
-        >>> 
-        >>> # Verify the generated proof
-        >>> verification = zokrates.verify_proof("proofs/client_1")
     """
 
-    def __init__(self, working_dir = None):
+    def __init__(self, working_dir : str = None):
         """Initialize Zokrates with a working directory.
         
         Args:
@@ -47,6 +19,7 @@ class Zokrates:
             self.working_dir = working_dir
             # Create working directory if it doesn't exist
             os.makedirs(self.working_dir, exist_ok=True)
+
 
     def _run_command(self, command, path = None):
         """Run a ZoKrates command using subprocess.
@@ -65,7 +38,10 @@ class Zokrates:
         cmd_parts = command.split(' ', 1)
         full_command = f"~/.zokrates/bin/zokrates {cmd_parts[1]}" if len(cmd_parts) > 1 else "/usr/local/bin/zokrates"
         
-        
+        # TODO test if it works
+        if path != None:
+            os.makedirs(path, exist_ok=True)
+
         # Run command in the specified directory
         result = subprocess.run(
             full_command, 
@@ -78,7 +54,7 @@ class Zokrates:
             raise ValueError(f"Error: {result.stdout.decode()}")
         return result.stdout.decode()
 
-    def setup(self):
+    def setup(self, zok_file_path : str):
         """Compile the ZoKrates program and set up the proving and verification keys.
         
         This method compiles the contribution verification program and generates the proving
@@ -87,31 +63,22 @@ class Zokrates:
         Raises:
             ValueError: If compilation or setup fails
         """
-        zok_file = "../../clientcontributionfl/contribution.zok "
-        
-        self._run_command(f"zokrates compile -i {zok_file}")
+        self._run_command(f"zokrates compile -i {zok_file_path}")
         self._run_command("zokrates setup")
 
-    # TODO consider to pass parameters as dict
-    def generate_proof(self, counts, scale, beta, mean_val, thr, score):
+    def generate_proof(self, arguments: Tuple[str]):
         """Generate a zero-knowledge proof with the given data.
         
         Args:
-            counts (List[int]): List of label counts from the client
-            scale (int): Scaling factor to convert floats to integers
-            beta (int): Weight factor for variance in score calculation
-            mean_val (int): Mean value of the counts
-            thr (int): Threshold for contribution evaluation
-            score (int): Calculated contribution score
+            arguments: Tuple[str] Arbitrary positional arguments for the ZoKrates command
             
         Returns:
             str: Generated proof output
-            
-        Raises:
-            ValueError: If proof generation fails
         """
-        counts_str = " ".join(map(str, counts))
-        self._run_command(f"zokrates compute-witness -a {counts_str} {scale} {beta} {mean_val} {thr} {score}")
+        
+        arguments = " ".join(map(str, arguments))
+
+        self._run_command(f"zokrates compute-witness -a {arguments}")
         proof = self._run_command("zokrates generate-proof")
         return proof
 
@@ -130,20 +97,4 @@ class Zokrates:
         # TODO include the export verifier for solidity
         return self._run_command("zokrates verify", path=key_path)
 
-# Example usage
-if __name__ == "__main__":
-    counts = [11, 11, 38]
-    scale = 1
-    beta = 1
-    mean_val = int(sum(counts) / len(counts))
-    thr = 10
-    #working_dir = os.path.join("proofs", f"client_12")
-    
-    score = compute_score(counts=counts, scale=scale, beta=beta, thr=thr)
-    print(score)
-    # zokrates = Zokrates(working_dir)
-    # zokrates.setup()
-    
-    # proof = zokrates.generate_proof(counts, scale, beta, mean_val, gamma, score)
-    # verification = zokrates.verify_proof()
-    # print(verification)
+

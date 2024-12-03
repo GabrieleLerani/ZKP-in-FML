@@ -1,12 +1,23 @@
 
 from torch.utils.data import DataLoader
 from typing import Tuple, List
-from .utils.hash_utils import format_proof_path
+from .utils.hash_utils import hash
+
+def is_power_of_two(n: int) -> bool:
+    """Check if a number is a power of two."""
+    return n > 0 and (n & (n - 1)) == 0
+
+def check_tree_levels_power_of_two(tree: list[list[int]]) -> bool:
+    """Check if all levels of the Merkle tree contain a number of nodes that is a power of two."""
+    for i, level in enumerate(tree):
+        if not is_power_of_two(len(level)) and i != len(tree) - 1:
+            return False
+    return True
 
 
 def build_merkle_tree_level(current_level: list[bytes]) -> list:
     """Build a single level of the merkle tree."""
-    level = []
+    next_level = []
     for i in range(0, len(current_level), 2):
         # Combine pairs of hashes to form the next level
         if i + 1 < len(current_level):
@@ -15,11 +26,11 @@ def build_merkle_tree_level(current_level: list[bytes]) -> list:
             # Handle odd number of nodes (duplicate last node)
             combined = [current_level[i], current_level[i]]
         
-        level.append(hash(combined))
+        next_level.append(hash(combined))
 
-    return level
+    return next_level
 
-def build_merkle_tree(leaves: list[bytes]) -> list[list[bytes]]:
+def build_merkle_tree(leaves: list[int]) -> list[list[int]]:
     """Constructs a Merkle tree and returns all levels."""
     tree = [leaves]  # Start with the leaf nodes
     current_level = leaves
@@ -31,17 +42,21 @@ def build_merkle_tree(leaves: list[bytes]) -> list[list[bytes]]:
 
     return tree
 
-def compute_merkle_proof(tree: list[list[bytes]], leaf_index: int) -> Tuple[list[bytes], list[int], bytes]:
+def compute_merkle_proof(tree: list[list[int]], leaf_index: int) -> Tuple[list[int], list[int], int]:
     """Generates the Merkle proof for a given leaf index."""
+    
     proof = []
     directions = []
     start_index = leaf_index
-    for level in range(len(tree) - 1):
-        sibling_index = leaf_index ^ 1  # XOR with 1 to get the sibling index
-        directions.append(leaf_index % 2)  # 0 if left, 1 if right
-        proof.append(tree[level][sibling_index])
-        leaf_index //= 2
-    return proof, directions, tree[0][start_index]
+    try:
+        for level in range(len(tree) - 1):
+            sibling_index = leaf_index ^ 1  # XOR with 1 to get the sibling index
+            directions.append(leaf_index % 2)  # 0 if left, 1 if right
+            proof.append(tree[level][sibling_index])
+            leaf_index //= 2
+        return proof, directions, tree[0][start_index]
+    except IndexError:
+        print(len(tree),tree[level], sibling_index, level)
 
 def hash_batch(batch) -> int:
     """Hashes a batch of images and labels into a single hash."""
@@ -61,10 +76,15 @@ def hash_batch(batch) -> int:
 
 def compute_tree_leaves_batch(dataloader: DataLoader) -> List[int]:
     """Compute leaves of the tree as hash of each batch in dataloader."""
-    leaf_hashes = []
-    for batch in dataloader:
-        hashed_batch = hash_batch(batch)
-        leaf_hashes.append(hashed_batch)  
+    # leaf_hashes = [hash_batch(b) for b in dataloader]
+    # return leaf_hashes
+    leaf_hashes = [hash_batch(b) for b in dataloader]
+
+    if not is_power_of_two(len(leaf_hashes)):
+        next_power_of_two = 1 << (len(leaf_hashes) - 1).bit_length()
+        while len(leaf_hashes) < next_power_of_two:
+            leaf_hashes.append(leaf_hashes[-1])
+            
     return leaf_hashes
 
 def compute_tree_leaves_samples(dataloader: DataLoader) -> List[int]:

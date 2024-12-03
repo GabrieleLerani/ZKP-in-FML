@@ -1,4 +1,5 @@
-const u32 CLIENTS = 10;
+
+const u32 CLASSES = 10;
 
 // Function to calculate the sum of elements in an array
 def sum<N>(field[N] a) -> field {
@@ -39,7 +40,7 @@ def diversity<N>(field[N] arr, field thr) -> field {
 
 // Main function to compute dataset score
 // Inputs: label counts, scale factor, beta (weight)
-def main(private field[CLIENTS] counts, private field scale, private field beta, private field mean_val, private field thr, private field pre_computed_score) -> field {
+def main(private field[CLASSES] counts, private field scale, private field beta, private field mean_val, private field thr, private field pre_computed_score) -> field {
     
     field total = sum(counts);
     field var = variance(counts, mean_val);
@@ -47,11 +48,7 @@ def main(private field[CLIENTS] counts, private field scale, private field beta,
     
     // Calculate the final score (scaled)
     field score = (beta * var) + (div * scale);
-    log("score is {}, pre_computed_score is {}, var {}, div {}, mean_val {}", score, pre_computed_score, var, div, mean_val);
     assert(score == pre_computed_score);
     
     return score;
 }
-    
-
-

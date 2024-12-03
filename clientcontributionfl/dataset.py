@@ -25,7 +25,7 @@ TRAIN_TRANSFORMS = transforms.Compose([
 
 # TODO consider to make all the code into a class to improve readability
 fds = None # cache FederatedDataset
-node_partitions = None # cache node partitions
+node_dataloader = {} # cache node partitions
 partition_class_counts = {} # cache number of partitions
 
 
@@ -51,13 +51,10 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
     if fds is None:
         initialize_federated_dataset(config, num_partitions)
 
-    train_partition, test_partition = split_partition(fds, partition_id)
-
     batch_size = config["batch_size"]
-    trainloader = DataLoader(train_partition, batch_size=batch_size, shuffle=True, num_workers=7)
-    testloader = DataLoader(test_partition, batch_size=batch_size, shuffle=False, num_workers=7)
+    trainloader, testloader = get_data_loaders(fds, partition_id, batch_size)
 
-    return trainloader, testloader, get_num_classes(flwr_dataset_name(config["dataset_name"]))
+    return trainloader, testloader, get_num_classes(config["dataset_name"])
 
 
 def initialize_federated_dataset(config: Dict[str, any], num_partitions: int):
@@ -72,13 +69,17 @@ def initialize_federated_dataset(config: Dict[str, any], num_partitions: int):
     if config["plot_label_distribution"]:
         plot_label_partitioning(fds.partitioners["train"], config, num_partitions)
 
-
-def split_partition(fds, partition_id) -> tuple:
-    """Split the partition into train and test sets."""
-    partition = fds.load_partition(partition_id, "train")
-    partition = partition.with_transform(apply_transforms)
-    partition_train_test = partition.train_test_split(test_size=0.2, seed=42)
-    return partition_train_test["train"], partition_train_test["test"]
+def get_data_loaders(fds: FederatedDataset, partition_id: int, batch_size: int) -> tuple:
+    """Split the partition into train and test sets and return the corresponding dataloaders."""
+    global node_dataloader
+    if partition_id not in node_dataloader:
+        partition = fds.load_partition(partition_id, "train").with_transform(apply_transforms)
+        train_test_split = partition.train_test_split(test_size=0.2, seed=42)
+        trainloader = DataLoader(train_test_split["train"], batch_size=batch_size, shuffle=True, num_workers=7)
+        testloader = DataLoader(train_test_split["test"], batch_size=batch_size, shuffle=False, num_workers=7)
+        node_dataloader[partition_id] = trainloader, testloader
+    
+    return node_dataloader[partition_id]
 
 def load_centralized_dataset(config: Dict[str, any]) -> tuple[DataLoader, int]:
     dataset_name = flwr_dataset_name(config["dataset_name"])
@@ -88,7 +89,7 @@ def load_centralized_dataset(config: Dict[str, any]) -> tuple[DataLoader, int]:
         batch_size=config["batch_size"], 
         num_workers=7
     )
-    return centralized_test_loader, get_num_classes(flwr_dataset_name(config["dataset_name"]))
+    return centralized_test_loader, get_num_classes(config["dataset_name"])
 
 
 def get_partitioner(cfg: Dict[str, any], num_partitions: int):
@@ -120,6 +121,7 @@ def get_partitioner(cfg: Dict[str, any], num_partitions: int):
     return partitioner
 
 def get_num_classes(name: str) -> int:
+    name = flwr_dataset_name(name)
     if "mnist" in name or "cifar10" in name:
         return 10
     elif "cifar100" in name:

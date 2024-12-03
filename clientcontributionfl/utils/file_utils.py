@@ -3,6 +3,17 @@ import os
 import json
 from typing import List
 
+def read_file_as_bytes(file_path: str) -> bytes:
+    """Reads a file and returns its content as bytes."""
+    with open(file_path, "rb") as f:
+        return f.read()
+
+def write_bytes_to_file(file_path: str, data: bytes) -> None:
+    """Writes bytes data to a file, creating the file if it doesn't exist."""
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "wb") as f:
+        f.write(data)
+
 
 def generate_file_suffix(params: dict) -> str:
     """
@@ -176,7 +187,7 @@ def check_arguments(args):
         return False
 
 def _check_strategies(strategies: List[str]):
-    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "PoC", "PoCZk"}
+    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "PoC", "PoCZk", "MPAvg"}
     invalid_strategies = [s for s in strategies if s not in valid_strategies]
     if invalid_strategies:
         raise ValueError(f"Invalid strategies: {invalid_strategies}. Valid options are: {valid_strategies}")

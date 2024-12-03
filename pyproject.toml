@@ -44,7 +44,7 @@ balanced = false  # if true iid partitions will have same size.
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5
-batch_size = 10
+batch_size = 8
 
 # dataset config for non_iid nodes
 iid_ratio = 0.7 # percentage of iid_node
@@ -52,6 +52,10 @@ iid_data_fraction = 0.3 # percentage of iid_node
 x_non_iid = 1 # number of labels of non_iid clients
 dishonest = true # if true all non iid nodes will send a fake score
 dishonest_value = 1000000000 # fake value dishonest clients send to server
+
+# path to zok file to compute contribution
+zok_contribution_file_path = "clientcontributionfl/client_strategy"
+
 
 # value for power of choice strategy
 d = 5 # size of the candidate set between max(CK, 1) <= d <= K

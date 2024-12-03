@@ -1,11 +1,8 @@
 from clientcontributionfl.server_strategy import ZkAvg
 from flwr.common import (
     EvaluateIns,
-    EvaluateRes,
     FitIns,
     FitRes,
-    MetricsAggregationFn,
-    NDArrays,
     Parameters,
     Scalar,
     ndarrays_to_parameters,
@@ -14,7 +11,6 @@ from flwr.common import (
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from clientcontributionfl.utils import aggregate, SelectionPhase
-from collections import defaultdict
 from flwr.server.strategy import FedAvg
 from pprint import PrettyPrinter
 from flwr.common.logger import log
@@ -49,8 +45,32 @@ class PoCZk(ZkAvg):
         self.active_clients: List[ClientProxy] = []
         self.filtered_probabilities : List[float] = []
         self.status = SelectionPhase.SCORE_AGGREGATION
-        self.on_fit_config_fn = on_fit_config_fn
-        
+        self.on_fit_config_fn = on_fit_config_fn    
+
+    def _check_client_in_candidate_set(self, results: list[tuple[ClientProxy, FitRes]]) -> List:
+        fit_metrics = []
+        for client, res in results:
+            if client not in self.candidate_set:
+                log(WARNING, "Client not in candidate set. Cannot accept its loss value.")
+            else:
+                fit_metrics.append((client.cid, res.metrics))
+        return fit_metrics
+
+    def _store_losses(self, results: list[tuple[ClientProxy, FitRes]]):
+        fit_metrics = self._check_client_in_candidate_set(results)        
+        client_losses = self._aggregate_loss(fit_metrics)
+        return client_losses
+
+    def _aggregate_losses_from_active_set(self, results: list[tuple[ClientProxy, FitRes]]):
+        # Convert results
+        weights_results = [
+            (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
+            for _, fit_res in results
+        ]
+        aggregated_ndarrays = aggregate(weights_results)
+
+        parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
+        return parameters_aggregated
 
     def aggregate_fit(
         self,
@@ -67,52 +87,57 @@ class PoCZk(ZkAvg):
         else:
 
             if self.status == SelectionPhase.SCORE_AGGREGATION:
-                fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
-                self._aggregate_verification_keys_and_scores(fit_metrics)
-                self._check_proof()
-                self._normalize_scores()
-                PrettyPrinter(indent=4).pprint(self.client_data)
+                self._aggregate_score(results)
                 self.status = SelectionPhase.CANDIDATE_SELECTION
                 log(INFO, f"scores aggregation completed.")
                 return None, {}
-            
         
             elif self.status == SelectionPhase.STORE_LOSSES:
-                # 1. check if received results are within candidate set A and collect received loss
-                fit_metrics = []
-                for client, res in results:
-                    if client not in self.candidate_set:
-                        log(WARNING, "No evaluate_metrics_aggregation_fn provided")
-                    else:
-                        fit_metrics.append((client.cid, res.metrics))
-                        
-                # 2. Store received losses 
-                client_losses = self._aggregate_loss(fit_metrics)
                 
-
-                # 3. Select active clients
+                client_losses = self._store_losses(results)
+            
                 self.active_clients = self._select_high_loss_clients(client_losses, self.m)
                 
-
-                # 4. Set the next phase as aggregation from the active set
                 self.status = SelectionPhase.TRAIN_ACTIVE_SET
                 log(INFO, f"losses from candidate set aggregation completed.")
                 return None, {}
 
             elif self.status == SelectionPhase.AGGREGATE_FROM_ACTIVE_SET:
 
-                # Convert results
-                weights_results = [
-                    (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
-                    for _, fit_res in results
-                ]
-                aggregated_ndarrays = aggregate(weights_results)
-
-                parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
+                parameters_aggregated = self._aggregate_losses_from_active_set(results)
                 
                 self.status = SelectionPhase.CANDIDATE_SELECTION
                 log(INFO, f"aggregation from active set completed.")
                 return parameters_aggregated, {}
+
+    def _configure_score_aggregation(
+            self, server_round: int, parameters: Parameters, client_manager: ClientManager
+        ) -> List[Tuple[ClientProxy, FitIns]]:
+        # set to one because during aggregation we need dataset score of all clients
+        sample_size, min_num_clients = self.num_fit_clients(client_manager.num_available(),fraction_fit=1.0)
+        # First round: sample uniformly without filtering in order to obtain their contribution score
+        clients = client_manager.sample(
+            num_clients=sample_size, min_num_clients=min_num_clients
+        )
+
+        config = self._set_status_config(server_round)
+        
+        fit_ins = FitIns(parameters, config)
+        return [(client, fit_ins) for client in clients]
+
+    def _configure_candidate_selection(
+            self, server_round: int, client_manager: ClientManager
+        ):
+        # Biased sampling based on scores
+        self.candidate_set = self._biased_sampling(client_manager, self.d, server_round)
+        client_set = self.candidate_set
+        
+        sample_size, _ = self.num_fit_clients(
+            client_manager.num_available(),fraction_fit=self.fraction_fit)
+        self.m = sample_size
+        self.status = SelectionPhase.STORE_LOSSES
+
+        return client_set
 
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
@@ -120,34 +145,17 @@ class PoCZk(ZkAvg):
         """Configure the next round of training."""
         
         if self.status == SelectionPhase.SCORE_AGGREGATION:
-            
-            # set to one because during aggregation we need dataset score of all clients
-            sample_size, min_num_clients = self.num_fit_clients(client_manager.num_available(),fraction_fit=1.0)
-            # First round: sample uniformly without filtering in order to obtain their contribution score
-            clients = client_manager.sample(
-                num_clients=sample_size, min_num_clients=min_num_clients
-            )
-
-            config = self._set_status_config(server_round)
-            
-            fit_ins = FitIns(parameters, config)
-            return [(client, fit_ins) for client in clients]
+    
+            return self._configure_score_aggregation(server_round, parameters, client_manager)
         
         elif self.status == SelectionPhase.CANDIDATE_SELECTION:
-            # Biased sampling based on scores
-            self.candidate_set = self._biased_sampling(client_manager, self.d, server_round)
-            client_set = self.candidate_set
-            
-            self.status = SelectionPhase.STORE_LOSSES
-            sample_size, min_num_clients = self.num_fit_clients(
-                client_manager.num_available(),fraction_fit=self.fraction_fit)
-            self.m = sample_size
+    
+            client_set = self._configure_candidate_selection(server_round, client_manager)
 
         elif self.status == SelectionPhase.TRAIN_ACTIVE_SET:
             client_set = self.active_clients
             self.status = SelectionPhase.AGGREGATE_FROM_ACTIVE_SET
         
-
         config = self._set_status_config(server_round)
         fit_ins = FitIns(parameters, config)
 
@@ -218,7 +226,6 @@ class PoCZk(ZkAvg):
             else:
                 self.filtered_probabilities = [self.client_data[client.cid][1] / total for client in self.filtered_clients]
             
-            PrettyPrinter(indent=4).pprint(self.filtered_probabilities)
         
         sampled_clients = np.random.choice(self.filtered_clients, p=self.filtered_probabilities, size=d, replace=False)
         

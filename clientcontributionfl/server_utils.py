@@ -1,7 +1,7 @@
 
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
-
+import os
 import torch
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
@@ -11,10 +11,12 @@ from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
 
 import clientcontributionfl.models as models
-from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC
-from clientcontributionfl.utils import get_model_class
-
+from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC, MerkleProofAvg
+from clientcontributionfl.utils import get_model_class, generate_zokrates_template, create_zok_file
+from flwr.common.config import get_project_config
 from logging import INFO
+from .dataset import get_num_classes
+
 
 def get_evaluate_metrics_aggregation(cfg: Dict[str, any]):
     """Return function that prepares config to send to clients."""
@@ -125,16 +127,37 @@ def get_strategy(
 
     if cfg['strategy'] == 'FedAvg':
         strategy_class = FedAvg
+    
+    elif cfg['strategy'] == 'MPAvg':
+        common_args["fraction_fit"] = 1.0
+        strategy_class = MerkleProofAvg
+
     elif cfg['strategy'] in ['ContAvg', 'ZkAvg']:
+        
         common_args["fraction_fit"] = 1.0 
         common_args['selection_thr'] = cfg['selection_thr']
         strategy_class = ContributionAvg if cfg['strategy'] == 'ContAvg' else ZkAvg
     elif cfg['strategy'] in ['PoC', 'PoCZk']:
         common_args['d'] = cfg['d']
         strategy_class = PoC if cfg['strategy'] == 'PoC' else PoCZk
+    
+    # create a custom file based on number of clients
+    if cfg['strategy'] in ['ZkAvg', 'PoCZk']:
+        create_contribution_zokrates_file(cfg)
 
     return strategy_class(**common_args)
 
+def create_contribution_zokrates_file(cfg):
+
+    file_path = cfg["zok_contribution_file_path"]
+    dataset_name = cfg["dataset_name"]
+    num_classes = get_num_classes(dataset_name)
+    template = generate_zokrates_template(num_classes)
+    create_zok_file(
+        directory=file_path, 
+        filename="contribution.zok",
+        template=template
+    )
 
 
 

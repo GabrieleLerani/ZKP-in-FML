@@ -1,13 +1,9 @@
 
-import flwr as fl
 from flwr.server.strategy import FedAvg
 from flwr.common import (
     EvaluateIns,
-    EvaluateRes,
     FitIns,
     FitRes,
-    MetricsAggregationFn,
-    NDArrays,
     Parameters,
     Scalar,
     ndarrays_to_parameters,
@@ -19,8 +15,6 @@ from flwr.server.client_proxy import ClientProxy
 
 from typing import List, Tuple, Union, Optional, Dict
 from logging import INFO
-from functools import reduce
-import numpy as np
 from pprint import PrettyPrinter
 from clientcontributionfl import Zokrates
 from clientcontributionfl.utils import extract_score_from_proof, aggregate
@@ -48,6 +42,13 @@ class ZkAvg(FedAvg):
         self.zk: Zokrates = Zokrates()
         self.discarding_threshold = selection_thr  
 
+    def _aggregate_score(self, results: list[tuple[ClientProxy, FitRes]]):
+        fit_metrics = [(c.cid, res.metrics) for c, res in results]
+        self._aggregate_verification_keys_and_scores(fit_metrics)
+        self._check_proof()
+        self._normalize_scores()
+        PrettyPrinter(indent=4).pprint(self.client_data)
+
     def _normalize_scores(self):
         """
         Normalize the scores so they sum up to 1.
@@ -69,15 +70,15 @@ class ZkAvg(FedAvg):
             }
         
 
-    def _aggregate_verification_keys_and_scores(self, fit_metrics: List[Tuple[int, Dict[str, Scalar]]]):
+    def _aggregate_verification_keys_and_scores(self, fit_metrics: List[Tuple[str, Dict[str, Scalar]]]):
         """Aggregates verification keys and scores."""
         # TODO improve because client_id is embedded into ClientProxy
         # and doesn't need to be sent from clients.
-        for _, metrics in fit_metrics:
-            for key, value in metrics.items():
-                client_id = key.split('_')[1]
-                self.client_data[client_id][0] = value # path of the verification key
-                self.client_data[client_id][1] = extract_score_from_proof(os.path.join(value, "proof.json"))
+        for client_id, metrics in fit_metrics:
+            for _, verification_key_path in metrics.items():
+                #client_id = key.split('_')[1]
+                self.client_data[client_id][0] = verification_key_path # path of the verification key
+                self.client_data[client_id][1] = extract_score_from_proof(os.path.join(verification_key_path, "proof.json"))
         
         log(INFO,"Verification keys and score aggregated")
 
@@ -137,11 +138,7 @@ class ZkAvg(FedAvg):
 
         # aggregate keys, score and normalize them
         if server_round == 1:
-            fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
-            self._aggregate_verification_keys_and_scores(fit_metrics)
-            self._check_proof()
-            self._normalize_scores()
-            PrettyPrinter(indent=4).pprint(self.client_data)
+            self._aggregate_score(results)
 
         return parameters_aggregated, {}
 

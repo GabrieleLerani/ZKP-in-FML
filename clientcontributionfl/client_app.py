@@ -3,12 +3,10 @@ from flwr.client import Client, ClientApp
 from flwr.client.mod import secaggplus_mod
 from flwr.common import Context
 from flwr.common.config import get_project_config
-
 from clientcontributionfl import load_data, compute_partition_counts
-from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient, PoCZkClient, PoCClient
-import clientcontributionfl.models as models
+from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient, PoCZkClient, PoCClient, MerkleProofClient
 from clientcontributionfl.utils import get_model_class
-
+import clientcontributionfl.models as models
 
 def create_client(strategy: str, **kwargs) -> Client:
     client_classes = {
@@ -17,6 +15,7 @@ def create_client(strategy: str, **kwargs) -> Client:
         "ContAvg": ContributionClient,
         "PoC": PoCClient,
         "PoCZk": PoCZkClient,
+        "MPAvg": MerkleProofClient
     }
     
     client_class = client_classes.get(strategy)
@@ -48,13 +47,14 @@ def client_fn(context: Context) -> Client:
         "testloader": test_loader,
         "num_classes": num_classes,
         "config": config,
-        "model_class": model_class,
+        "model_class": model_class,   
     }
 
-    if config["strategy"] in ["FedAvg", "PoC"]:
+    if config["strategy"] in ["FedAvg", "PoC", "MPAvg"]:
         return create_client(config["strategy"], **common_args)
 
-    elif config["strategy"] in ["ZkAvg", "ContAvg", "PoCZk"]:
+    elif config["strategy"] in ["ZkAvg", "PoCZk"]:
+        
         partition_counts = compute_partition_counts(
             data_loader=train_loader,
             partition_id=partition_id,
@@ -63,7 +63,25 @@ def client_fn(context: Context) -> Client:
         iid_clients = num_partitions * config["iid_ratio"]
         dishonest = config["dishonest"]
         
-        # Add specific arguments for ZkAvg, ContAvg, and PoCZk
+        # Add specific arguments for ZkAvg and PoCZk
+        common_args.update({
+            "partition_label_counts": partition_counts,
+            "dishonest": partition_id >= iid_clients if dishonest else False,
+            "zok_file_path": f"../../{config["zok_contribution_file_path"]}/contribution.zok"
+        })
+        
+        return create_client(config["strategy"], **common_args)
+    
+    elif config["strategy"] == "ContAvg":
+        partition_counts = compute_partition_counts(
+            data_loader=train_loader,
+            partition_id=partition_id,
+            num_classes=num_classes
+        )
+        iid_clients = num_partitions * config["iid_ratio"]
+        dishonest = config["dishonest"]
+        
+        # Add specific arguments for ContAvg
         common_args.update({
             "partition_label_counts": partition_counts,
             "dishonest": partition_id >= iid_clients if dishonest else False,

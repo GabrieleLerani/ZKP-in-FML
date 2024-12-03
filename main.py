@@ -38,14 +38,12 @@ def run_simulation(args, strategy):
 
 # TODO in toml file check all unused parameters.
 def main():
-    # 1. clean existing directory of previous simulation
-    cleanup_proofs()
-
+    
     partitioner_choices = ["linear","exponential","dirichlet","pathological","square","iid","iid_and_non_iid"]
 
-    # 2. parse command line arguments
+    # 1. parse command line arguments
     parser = argparse.ArgumentParser(description="Run federated learning simulations.")
-    parser.add_argument("--strategies", type=list_of_strings, default="FedAvg", help="Comma-separated list of strategies to simulate. Available are FedAvg, ZkAvg, ContAvg")
+    parser.add_argument("--strategies", type=list_of_strings, default="FedAvg", help="Comma-separated list of strategies to simulate. Available are FedAvg, ZkAvg, ContAvg, PoC, PoCZk, MPAvg.")
     parser.add_argument("--partitioner",choices=partitioner_choices, default="iid_and_non_iid", help="Type of partitioner. Check Flower docs for more details.")
     parser.add_argument("--balanced", action="store_true",default=False, help="If True, all partitions will have the same number of samples. Applicable only with iid_and_non_iid partitioner.")
     parser.add_argument("--num_rounds", type=int, default=10, help="Number of rounds for the simulation.")
@@ -65,14 +63,17 @@ def main():
         parser.print_help()
         return
 
-    # 3. Run simulation for each strategy
+    # 2. Run simulation for each strategy
     strategies = args.strategies
     for strategy in strategies:
+        # 1. clean existing directory of previous simulation
+        cleanup_proofs()
         run_simulation(args, strategy)
 
-    # 4. overrides configuration with current parameters 
+    # 3. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
     
+
     config.update({
         "num_rounds": args.num_rounds,
         "iid_ratio": args.iid_ratio,
@@ -85,7 +86,7 @@ def main():
     })
 
 
-    # 5. save simulation results
+    # 4. save simulation results
     results_path = Path(config["save_path"]) 
     plot_comparison_from_files(
         save_plot_path=results_path,

@@ -212,4 +212,74 @@ def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
     return weights_prime
 
 
+def generate_zokrates_template(classes: int):
+    """
+    Generate a .zok file with a dynamic classes number.
+    """
+    template = f"""
+const u32 CLASSES = {classes};
 
+// Function to calculate the sum of elements in an array
+def sum<N>(field[N] a) -> field {{
+    field mut total = 0;
+    for u32 i in 0..N {{
+        total = total + a[i];
+    }}
+    return total;
+}}
+    
+
+
+// Function to calculate variance of the elements in an array
+def variance<N>(field[N] arr, field mean) -> field {{
+    field mut var = 0;
+    //field mut diff = 0;
+    for u32 i in 0..N {{
+        // diff = arr[i] - mean; // test it could break prime fields
+        // var = if diff > 0 {{diff}} else {{-diff}};
+        var = var + (arr[i] - mean) * (arr[i] - mean);
+    }}
+    return var;
+}}
+    
+
+// Function to calculate label diversity (number of different labels)
+def diversity<N>(field[N] arr, field thr) -> field {{
+    field mut div = 1;
+    for u32 i in 0..N {{
+        
+        //assigns a +1 if client has at least thr elements 
+        div = if arr[i] >= thr {{div + 1}} else {{div}};
+
+    }}
+    return div;
+}}
+    
+
+// Main function to compute dataset score
+// Inputs: label counts, scale factor, beta (weight)
+def main(private field[CLASSES] counts, private field scale, private field beta, private field mean_val, private field thr, private field pre_computed_score) -> field {{
+    
+    field total = sum(counts);
+    field var = variance(counts, mean_val);
+    field div = diversity(counts, thr);
+    
+    // Calculate the final score (scaled)
+    field score = (beta * var) + (div * scale);
+    assert(score == pre_computed_score);
+    
+    return score;
+}}
+"""
+    return template
+
+
+def create_zok_file(directory: str, filename: str, template) -> str:
+    
+    os.makedirs(directory, exist_ok=True)
+
+    file_path = os.path.join(directory, filename)
+
+    with open(file_path, "w") as f:
+        f.write(template)
+    

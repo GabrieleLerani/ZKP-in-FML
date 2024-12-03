@@ -28,6 +28,7 @@ def main(driver: Driver, context: Context):
     
     # Step 4: Create legacy context and workflow
     legacy_context = create_legacy_context(context, run_params['num_rounds'], strategy)
+
     workflow = create_workflow(run_params)
     
     # Step 5: Execute workflow
