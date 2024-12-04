@@ -7,14 +7,13 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from flwr.common import Metrics, Scalar
-from flwr.common.logger import log
 from flwr.server.strategy import FedAvg, Strategy
 
 import clientcontributionfl.models as models
 from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC, MerkleProofAvg
-from clientcontributionfl.utils import get_model_class, generate_zokrates_template, create_zok_file
-from flwr.common.config import get_project_config
-from logging import INFO
+from clientcontributionfl.utils import get_model_class, generate_zok_client_score_template, write_zok_file
+
+
 from .dataset import get_num_classes
 
 
@@ -141,7 +140,7 @@ def get_strategy(
         common_args['d'] = cfg['d']
         strategy_class = PoC if cfg['strategy'] == 'PoC' else PoCZk
     
-    # create a custom file based on number of clients
+    # create a custom file based on number of classes of the dataset
     if cfg['strategy'] in ['ZkAvg', 'PoCZk']:
         create_contribution_zokrates_file(cfg)
 
@@ -152,8 +151,8 @@ def create_contribution_zokrates_file(cfg):
     file_path = cfg["zok_contribution_file_path"]
     dataset_name = cfg["dataset_name"]
     num_classes = get_num_classes(dataset_name)
-    template = generate_zokrates_template(num_classes)
-    create_zok_file(
+    template = generate_zok_client_score_template(num_classes)
+    write_zok_file(
         directory=file_path, 
         filename="contribution.zok",
         template=template

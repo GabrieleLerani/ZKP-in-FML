@@ -2,10 +2,10 @@ from typing import Tuple
 import torch
 import os
 from clientcontributionfl.models import train
-from clientcontributionfl.merkle_root_proof import compute_merkle_tree, compute_merkle_proof
+from clientcontributionfl.merkle_root_proof import compute_merkle_tree, compute_merkle_proof, format_proof_arguments
 from .fedavg_client import FedAvgClient
 from clientcontributionfl.zokrates_proof import Zokrates
-from clientcontributionfl.utils.file_utils import read_file_as_bytes
+from clientcontributionfl.utils import read_file_as_bytes, generate_zok_merkle_tree_template, write_zok_file
 
 class MerkleProofClient(FedAvgClient):
     """
@@ -44,20 +44,14 @@ class MerkleProofClient(FedAvgClient):
         image_index = torch.randint(0, batch_data.size(0), (1,)).item()  # Random image index in the batch
         return batch_data[image_index], batch_labels[image_index], batch_index
 
-    def _format_proof_arguments(self, merkle_tree, path, direction_selector, leaf) -> tuple:
-        direction_selector_str = " ".join(map(str, direction_selector))
-        formatted_path = " ".join([str(node) for node in path])
-        root = merkle_tree[-1][0]
-
-        return root, leaf, direction_selector_str, formatted_path
 
     def _generate_proof_files(self, merkle_tree, batch_index) -> Tuple[bytes]:
         """Generate proof and read the corresponding files."""
         path, direction_selector, leaf = compute_merkle_proof(merkle_tree, batch_index)
         
-        program_path = self._create_zok_file(tree_depth=len(path))
+        program_path = self._create_zok_program(tree_depth=len(path))
         
-        arguments = self._format_proof_arguments(merkle_tree, path, direction_selector, leaf)
+        arguments = format_proof_arguments(merkle_tree, path, direction_selector, leaf)
         
         self.zk.setup(zok_file_path=f"../../{program_path}")
         self.zk.generate_proof(arguments)
@@ -68,17 +62,19 @@ class MerkleProofClient(FedAvgClient):
         return proof_bytes, verification_bytes
     
 
-    def _create_zok_file(self, tree_depth: int) -> str:
+    def _create_zok_program(self, tree_depth: int) -> str:
         """
         This functions create a dynamic zok file in order to simulate dynamic
         proof generation. (Zokrates only supports static arrays whose size is known
         at compile time).
         """
-        template = generate_zokrates_template(tree_depth)
-        template_path = os.path.join(self.path_proof_dir, "merkle_proof.zok")
-        with open(template_path, "w") as f:
-            f.write(template)
-        return template_path
+        template = generate_zok_merkle_tree_template(tree_depth)
+        path = write_zok_file(
+            directory=self.path_proof_dir, 
+            filename="merkle_proof.zok",
+            template=template
+        )
+        return path
 
     def fit(self, parameters, config):
         """Train model received by the server (parameters) using the data.
@@ -116,47 +112,4 @@ class MerkleProofClient(FedAvgClient):
         return self.get_parameters({}), len(self.trainloader), params
 
 
-def generate_zokrates_template(tree_depth):
-    """
-    Generate a .zok file with a dynamic tree depth.
-    """
-    template = f"""
-import "hashes/poseidon/poseidon" as poseidon;
-
-// Define tree depth
-const u32 TREE_DEPTH = {tree_depth};
-
-def select(bool condition, field left, field right) -> (field, field) {{
-    return (condition ? right : left, condition ? left : right);
-}}
-
-def merkleTreeProof<DEPTH>(
-    field root, 
-    field leaf, 
-    bool[DEPTH] directionSelector, 
-    field[DEPTH] path
-) -> bool {{
-    // Start from the leaf
-    field mut digest = leaf;
-
-    // Loop up the tree
-    for u32 i in 0..DEPTH {{
-        (field, field) s = select(directionSelector[i], digest, path[i]);
-        digest = poseidon([s.0, s.1]);
-    }}
-
-    return digest == root;
-}}
-
-// Main function
-def main(
-    field treeRoot, 
-    field leaf, 
-    private bool[TREE_DEPTH] directionSelector, 
-    private field[TREE_DEPTH] path
-) {{
-    assert(merkleTreeProof(treeRoot, leaf, directionSelector, path));
-}}
-"""
-    return template
 

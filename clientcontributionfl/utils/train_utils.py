@@ -212,7 +212,7 @@ def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
     return weights_prime
 
 
-def generate_zokrates_template(classes: int):
+def generate_zok_client_score_template(classes: int):
     """
     Generate a .zok file with a dynamic classes number.
     """
@@ -274,12 +274,59 @@ def main(private field[CLASSES] counts, private field scale, private field beta,
     return template
 
 
-def create_zok_file(directory: str, filename: str, template) -> str:
-    
-    os.makedirs(directory, exist_ok=True)
+def generate_zok_merkle_tree_template(tree_depth):
+    """
+    Generate a .zok file with a dynamic tree depth.
+    """
+    template = f"""
+import "hashes/poseidon/poseidon" as poseidon;
 
+// Define tree depth
+const u32 TREE_DEPTH = {tree_depth};
+
+def select(bool condition, field left, field right) -> (field, field) {{
+    return (condition ? right : left, condition ? left : right);
+}}
+
+def merkleTreeProof<DEPTH>(
+    field root, 
+    field leaf, 
+    bool[DEPTH] directionSelector, 
+    field[DEPTH] path
+) -> bool {{
+    // Start from the leaf
+    field mut digest = leaf;
+
+    // Loop up the tree
+    for u32 i in 0..DEPTH {{
+        (field, field) s = select(directionSelector[i], digest, path[i]);
+        digest = poseidon([s.0, s.1]);
+    }}
+
+    return digest == root;
+}}
+
+// Main function
+def main(
+    field treeRoot, 
+    field leaf, 
+    private bool[TREE_DEPTH] directionSelector, 
+    private field[TREE_DEPTH] path
+) {{
+    assert(merkleTreeProof(treeRoot, leaf, directionSelector, path));
+}}
+"""
+    return template
+
+
+def write_zok_file(filename: str, template, directory: str = None) -> str:
+    
+    if not directory:
+        directory = ""
+
+    #os.makedirs(directory, exist_ok=True)
     file_path = os.path.join(directory, filename)
 
     with open(file_path, "w") as f:
         f.write(template)
-    
+    return file_path

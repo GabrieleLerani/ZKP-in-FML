@@ -3,6 +3,14 @@ from torch.utils.data import DataLoader
 from typing import Tuple, List
 from .utils.hash_utils import hash
 
+
+def format_proof_arguments(merkle_tree, path, direction_selector, leaf) -> tuple:
+    direction_selector_str = " ".join(map(str, direction_selector))
+    formatted_path = " ".join([str(node) for node in path])
+    root = merkle_tree[-1][0]
+
+    return root, leaf, direction_selector_str, formatted_path
+
 def is_power_of_two(n: int) -> bool:
     """Check if a number is a power of two."""
     return n > 0 and (n & (n - 1)) == 0
@@ -60,8 +68,11 @@ def compute_merkle_proof(tree: list[list[int]], leaf_index: int) -> Tuple[list[i
 
 def hash_batch(batch) -> int:
     """Hashes a batch of images and labels into a single hash."""
-    feature, label = list(batch.keys())
-    images, labels = batch[feature], batch[label]
+    if isinstance(batch, dict):
+        feature, label = list(batch.keys())
+        images, labels = batch[feature], batch[label]
+    else:
+        images, labels = batch
     batch_data = []
     # Flatten images and convert to bytes
     for image, label in zip(images, labels):

@@ -1,1 +1,1 @@
-from .merkle_tree import compute_merkle_tree, compute_merkle_proof, verify_merkle_proof
+from .merkle_tree import compute_merkle_tree, compute_merkle_proof, verify_merkle_proof, format_proof_arguments

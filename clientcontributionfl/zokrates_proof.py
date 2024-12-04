@@ -31,11 +31,19 @@ class Zokrates:
             working_dir (str, optional): Directory to store ZoKrates files and proofs.
                 If provided, the directory will be created if it doesn't exist.
         """
-        if working_dir != None:
-            self.working_dir = working_dir
-            # Create working directory if it doesn't exist
-            os.makedirs(self.working_dir, exist_ok=True)
+        # TODO remove
+        # if working_dir is not None:
+        #     self.working_dir = working_dir
+        #     # Create working directory if it doesn't exist
+        #     print(os.getcwd())
+        #     os.makedirs(self.working_dir, exist_ok=True)
+        # else:
+        #     self.working_dir = None
 
+        self.working_dir = working_dir
+        # Create working directory if it doesn't exist
+        if self.working_dir != None:
+            os.makedirs(self.working_dir, exist_ok=True)
 
     def _run_command(self, command, path = None):
         """Run a ZoKrates command using subprocess.
@@ -53,7 +61,6 @@ class Zokrates:
         """
         cmd_parts = command.split(' ', 1)
         full_command = f"~/.zokrates/bin/zokrates {cmd_parts[1]}" if len(cmd_parts) > 1 else "/usr/local/bin/zokrates"
-        
         
         if path != None:
             os.makedirs(path, exist_ok=True)

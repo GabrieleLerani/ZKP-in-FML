@@ -18,22 +18,40 @@ from collections import Counter
 from typing import Dict
 
 
-TRAIN_TRANSFORMS = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))
-])
-
 # TODO consider to make all the code into a class to improve readability
 fds = None # cache FederatedDataset
 node_dataloader = {} # cache node partitions
 partition_class_counts = {} # cache number of partitions
 
 
-def apply_transforms(batch):
-    """Apply transforms to the partition from FederatedDataset."""
-    feature = list(batch.keys())[0] # take the column name of image
-    batch[feature] = [TRAIN_TRANSFORMS(img) for img in batch[feature]]
-    return batch
+MNIST_TRANSFORMS = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,))
+])
+
+CIFAR_TRANSFORMS = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
+])
+
+def get_transform_fn(dataset_name : str):
+    
+    def apply_transforms_cifar(batch):
+        """Apply transforms to the partition from FederatedDataset."""
+        feature = list(batch.keys())[0] # take the column name of image
+        batch[feature] = [CIFAR_TRANSFORMS(img) for img in batch[feature]]
+        return batch
+
+    def apply_transforms_mnist(batch):
+        """Apply transforms to the partition from FederatedDataset."""
+        feature = list(batch.keys())[0] # take the column name of image
+        batch[feature] = [MNIST_TRANSFORMS(img) for img in batch[feature]]
+        return batch
+
+    if dataset_name in ["MNIST", "FMNIST"]:
+        return apply_transforms_mnist
+    elif dataset_name == "CIFAR10":
+        return apply_transforms_cifar
 
 
 def flwr_dataset_name(dataset: str):
@@ -52,7 +70,7 @@ def load_data(config: Dict[str, any], partition_id: int, num_partitions: int) ->
         initialize_federated_dataset(config, num_partitions)
 
     batch_size = config["batch_size"]
-    trainloader, testloader = get_data_loaders(fds, partition_id, batch_size)
+    trainloader, testloader = get_data_loaders(fds, partition_id, batch_size, config["dataset_name"])
 
     return trainloader, testloader, get_num_classes(config["dataset_name"])
 
@@ -69,11 +87,12 @@ def initialize_federated_dataset(config: Dict[str, any], num_partitions: int):
     if config["plot_label_distribution"]:
         plot_label_partitioning(fds.partitioners["train"], config, num_partitions)
 
-def get_data_loaders(fds: FederatedDataset, partition_id: int, batch_size: int) -> tuple:
+def get_data_loaders(fds: FederatedDataset, partition_id: int, batch_size: int, dataset_name: str) -> tuple:
     """Split the partition into train and test sets and return the corresponding dataloaders."""
     global node_dataloader
     if partition_id not in node_dataloader:
-        partition = fds.load_partition(partition_id, "train").with_transform(apply_transforms)
+        transform_fn = get_transform_fn(dataset_name)
+        partition = fds.load_partition(partition_id, "train").with_transform(transform_fn)
         train_test_split = partition.train_test_split(test_size=0.2, seed=42)
         trainloader = DataLoader(train_test_split["train"], batch_size=batch_size, shuffle=True, num_workers=7)
         testloader = DataLoader(train_test_split["test"], batch_size=batch_size, shuffle=False, num_workers=7)
@@ -84,8 +103,9 @@ def get_data_loaders(fds: FederatedDataset, partition_id: int, batch_size: int) 
 def load_centralized_dataset(config: Dict[str, any]) -> tuple[DataLoader, int]:
     dataset_name = flwr_dataset_name(config["dataset_name"])
     dataset = load_dataset(dataset_name)["test"]
+    transform_fn = get_transform_fn(config["dataset_name"])
     centralized_test_loader = DataLoader(
-        dataset.with_transform(apply_transforms), 
+        dataset.with_transform(transform_fn), 
         batch_size=config["batch_size"], 
         num_workers=7
     )

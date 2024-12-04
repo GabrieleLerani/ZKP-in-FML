@@ -69,11 +69,10 @@ def main():
         # 1. clean existing directory of previous simulation
         cleanup_proofs()
         run_simulation(args, strategy)
+    
 
     # 3. overrides configuration with current parameters 
     config = get_project_config(".")["tool"]["flwr"]["app"]["config"]
-    
-
     config.update({
         "num_rounds": args.num_rounds,
         "iid_ratio": args.iid_ratio,

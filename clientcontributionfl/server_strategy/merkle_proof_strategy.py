@@ -57,8 +57,8 @@ class MerkleProofAvg(FedAvg):
             write_bytes_to_file(proof_path, proof_bytes)
             
             res = self.zk.verify_proof(client_proof_info_path)
-
-            self.client_proofs[c.cid] = "PASSED" in res
+            res = "PASSED" in res
+            self.client_proofs[c.cid] = res
             log(INFO, f"Proof {c.cid}: {res}")    
         
 
