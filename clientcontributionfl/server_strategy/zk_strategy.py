@@ -72,8 +72,7 @@ class ZkAvg(FedAvg):
 
     def _aggregate_verification_keys_and_scores(self, fit_metrics: List[Tuple[str, Dict[str, Scalar]]]):
         """Aggregates verification keys and scores."""
-        # TODO improve because client_id is embedded into ClientProxy
-        # and doesn't need to be sent from clients.
+        
         for client_id, metrics in fit_metrics:
             for _, verification_key_path in metrics.items():
                 #client_id = key.split('_')[1]

@@ -36,6 +36,14 @@ Building on the concepts of contribution evaluation, this strategy adapts the **
   - The server selects clients with the highest local loss from a candidate set, ensuring efficient utilization of the most promising participants.  
 - **Integration with ZkAvg**: By combining this strategy with ZkAvg, the framework achieves both **privacy-preserving guarantees** and **faster model convergence**, outperforming simpler approaches like ContAvg and FedAvg.  
 
+Additionally to their contribution score, clients can prove that they own a dataset directly showing a batch of data. How is the server sure that the batch really belongs to the client dataset? The way I used to solve the problem is by combining Merkle Tree with Zero-Knowledge proofs.
+
+### Key Concepts:
+- **Merkle Tree Structure**: A Merkle tree is a binary tree where each leaf node represents a hash of a data block, and each non-leaf node is a hash of its child nodes. This structure allows for efficient verification of data integrity and authenticity.
+- **Zero-Knowledge Proofs**: Zero-knowledge proofs enable one party (the prover) to prove to another party (the verifier) that they know a value (in this case, a data batch) without revealing any information about the value itself. This is achieved through cryptographic techniques that ensure the verifier can confirm the proof's validity without accessing the underlying data.
+
+The aforementioned approach brings a lot of practical challenges, how I tackled them is reported in the implementation details section.
+
 ### Why It Matters  
 This project advances Federated Learning by providing methods that:  
 - Protect client data privacy while ensuring trustworthy contribution evaluations.  
@@ -49,7 +57,8 @@ These strategies can be instrumental in scenarios where trust, efficiency, and p
 ## Features  
 - **ContAvg**: Threshold-based client selection with contribution scores.  
 - **ZkAvg**: Zero-knowledge proofs for privacy-preserving contribution evaluation.  
-- **Enhanced Power of Choice**: Advanced client selection based on contribution scores and local loss.  
+- **Enhanced Power of Choice**: Advanced client selection based on contribution scores and local loss. 
+- **Zero Knowledge Merkle proof**: Clients generate a merkle tree of its dataset and send a merkle proof to the server. 
 
 ## Project Structure 📁
 ```
@@ -58,6 +67,9 @@ clientcontributionfl/
   │ └── *.py # ZkAvg, ContAvg, FedAvg standard clients
   ├── server_strategy/
   │ └── *.py # server strategies like ZkAvg and ContAvg
+  ├── merkle_root_proof/
+  │ ├── hash/ # implementation of poseidon hash
+  │ └── *.py* # functions to build merkle tree
   ├── models/
   │ └── *.py # Neural network models and training functions
   ├── utils/
@@ -67,12 +79,14 @@ clientcontributionfl/
   ├── server_utils.py # server functions used during training
   ├── server_app.py # Server configuration
   ├── client_app.py # Client configuration
-  ├── zokrates_proof.py # Class to interact with zokrates tool
-  └── contribution.zok # zokrates file to prove contribution
+  └── zokrates_proof.py # Class to interact with zokrates tool
+  
 
 results/
   ├── label_dist/
   │ └── *.png # many plots of different partitioner
+  ├── merkle_tree_proofs/
+  │ └── *.png # different stats for varying batch size
   └── simulation/ # simultions result for different configurations
 
 notebook/
@@ -178,12 +192,25 @@ To prevent score manipulation, clients must provide zero-knowledge proofs of the
 
 Note: Due to Flower's limitations in file transfer, the implementation uses shared working directory paths between clients and server for proof verification.
 
+### Merkle Tree + ZK
+
+1. **Building the Merkle Tree**: The client constructs a Merkle tree for their dataset, generating a Merkle root that serves as a unique identifier for the entire dataset. This root is known to the server, potentially provided by a trusted third party.
+
+2. **Generating Proofs**: When a client wants to prove ownership of a specific batch of data, they provide the Merkle root, the leaf corresponding to the batch, and the path of siblings node to the root. The client computes a proof that demonstrates the batch's inclusion in the dataset without disclosing the batch itself.
+
+3. **Using zkSNARKs**: The witness for the proof is computed using zkSNARK tools like ZoKrates. This allows the client to generate a compact proof that can be efficiently verified by the server.
+
+4. **Verification Process**: The client sends the complete `proof.json` file and the `verification.key` to the server. The server verifies the proof's validity, ensuring that the client indeed possesses the claimed dataset. This process guarantees the integrity and authenticity of the data while maintaining confidentiality.
+
+5. **Assumptions**: The approach assumes that the server already knows the Merkle root of each client, which can be established through trusted third-party verification. The proof serves as evidence that the client genuinely holds the claimed dataset, reinforcing trust in the federated learning process.
+
 ### Custom partitioner
 The beforementioned strategies are well suited when data are not IID between clients. Flower already comes with many partitioners (Dirichlet, Linear, Size, Pathological, etc.) however none of them permits to have a portion of client with IID data and another with non-IID, simulating a scenario where a group of nodes has good quality data and another not. To cope with this limitation I implemented a flower Partitioner called [`LabelBasedPartitioner`](clientcontributionfl/custom_partitioner.py).
 
 The `LabelBasedPartitioner` allows you to specify:
 - `num_partitions`: Total number of clients/partitions
 - `iid_ratio`: Fraction of clients that will receive IID data (between 0 and 1)
+- `iid_data_fraction`: Fraction of total data allocated to IID clients (relative to non-IID clients).
 - `x`: The label each non_iid partition will have 
 
 ```python
