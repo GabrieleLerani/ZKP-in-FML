@@ -45,7 +45,6 @@ def compute_merkle_tree_build_time(proofs_path : str):
             # Measure time to build the Merkle tree
             merkle_tree, build_tree_elapsed_time = measure_execution_time(compute_merkle_tree, trainloader)
             
-
             leaf_index=0
             # Measure time to compute the Merkle proof
             res, proof_time = measure_execution_time(compute_merkle_proof, merkle_tree, leaf_index)
