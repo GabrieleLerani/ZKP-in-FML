@@ -4,56 +4,34 @@ import json
 from typing import List
 
 def read_file_as_bytes(file_path: str) -> bytes:
-    """Reads a file and returns its content as bytes."""
     with open(file_path, "rb") as f:
         return f.read()
 
 def write_bytes_to_file(file_path: str, data: bytes) -> None:
     """Writes bytes data to a file, creating the file if it doesn't exist."""
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    dir_name = os.path.dirname(file_path)
+    os.makedirs(dir_name, exist_ok=True)
     with open(file_path, "wb") as f:
         f.write(data)
 
 
 def generate_file_suffix(params: dict) -> str:
-    """
-    Generate a file suffix based on the provided parameters.
 
-    Parameters
-    ----------
-    params : dict
-        Dictionary containing the following keys:
-        - num_rounds: int
-        - partitioner: str
-        - dataset: str
-        - secaggplus: bool
-        - alpha: float, optional
-        - x_non_iid: int, optional
-        - iid_ratio: float, optional
-        - dishonest: bool, optional
-        - balanced: bool, optional
-        - iid_data_fraction: float, optional
-
-    Returns
-    -------
-    str
-        Generated file suffix.
-    """
     num_rounds = params["num_rounds"]
     partitioner = params["partitioner"]
-    dataset = params["dataset_name"]
+    #dataset = params["dataset_name"]
     secaggplus = params.get("secaggplus", False)
     alpha = params.get("alpha", None)
     x_non_iid = params.get("x_non_iid", None)
     iid_ratio = params.get("iid_ratio", None)
-    dishonest = params.get("dishonest", False)
+    #dishonest = params.get("dishonest", False)
     balanced = params.get("balanced", False)
     iid_data_fraction = params.get("iid_data_fraction", None)
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" and alpha is not None else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" and x_non_iid is not None else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" and iid_ratio is not None else "")
-    include_dishonest = (f"_dishonest" if dishonest else "")
+    #include_dishonest = (f"_dishonest" if dishonest else "")
     include_sec_agg = ("SecAgg" if secaggplus else "")
     include_balanced = (f"_bal={balanced}" if partitioner == "iid_and_non_iid" else "")
     include_iid_data_fraction = (f"_iid_df={iid_data_fraction}" if include_balanced and iid_data_fraction is not None else "")
@@ -61,12 +39,12 @@ def generate_file_suffix(params: dict) -> str:
     file_suffix = (
         f"R={num_rounds}"
         f"_P={partitioner}"
-        f"_D={dataset}"
+        #f"_D={dataset}"
         + include_sec_agg
         + include_alpha 
         + include_x 
         + include_iid_ratio 
-        + include_dishonest
+        #+ include_dishonest
         + include_balanced
         + include_iid_data_fraction
     )
@@ -84,20 +62,9 @@ def cleanup_proofs():
 
 
 
-def extract_score_from_proof(proof_file_path: str):
+def extract_score_from_proof(proof_file_path: str) -> int:
     """
     Extract the contribution score (x) from the proof.json file and convert it from hexadecimal to an integer.
-    
-    Args:
-        proof_file_path (str): Path to the proof.json file.
-    
-    Returns:
-        int: The score (x) as an integer.
-    
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        KeyError: If the required 'inputs' field is not found in the JSON.
-        ValueError: If the inputs field is empty or the value is not a valid hexadecimal.
     """
     try:
 
@@ -127,14 +94,6 @@ def extract_score_from_proof(proof_file_path: str):
 def forge_score_in_proof(proof_file_path, forged_score):
     """
     Modifies the score (public input) in the proof.json file to a forged value.
-    
-    Args:
-        proof_file_path (str): Path to the proof.json file.
-        forged_score (int): The forged score to insert into the inputs.
-    
-    Raises:
-        FileNotFoundError: If the file does not exist.
-        KeyError: If the 'inputs' field is not found in the JSON.
     """
     try:
         # Open and parse the JSON file
@@ -224,27 +183,11 @@ def _check_dishonest(dishonest: bool, partitioner):
 def _check_d(c: int, k: int, iid_ratio: int, d: int, dishonest: bool):
     """
     Check if the value of d is within the range of max(ck,1) and k.
-
-    Parameters
-    ----------
-    c : int
-        Fraction of clients.
-    k : int
-        Number of clients
-    iid_ratio int:
-        Fraction of iid clients 
-    d : int
-        Size of candidate set
-
-    Returns
-    -------
-    bool
-        True if the value of d is within the range, False otherwise.
     """
     iid_clients = int(k * iid_ratio) if dishonest else k
 
-    if not (max(c*iid_clients, 1) <= d <= iid_clients):
-        raise ValueError(f"The value of d must be within the range of {max(c*iid_clients, 1)} and {iid_clients}. Current value: {d}")
+    if not (int(max(c*iid_clients, 1)) <= d <= iid_clients):
+        raise ValueError(f"The value of d must be within the range of {int(max(c*iid_clients, 1))} and {iid_clients}. Current value: {d}")
     return True
 
 def _check_fraction_fit(c: float):

@@ -69,6 +69,12 @@ class ZkAvg(FedAvg):
                 for key, value in self.client_data.items()
             }
         
+    def _create_set_of_clients_with_valid_proofs(self):
+        """Pre process the set of valid clients in order to improve look up time during training."""
+        self.valid_clients = {cid for cid, data in self.client_data.items() if data[2]}
+
+    def _is_client_valid(self, cid: str):
+        return cid in self.valid_clients
 
     def _aggregate_verification_keys_and_scores(self, fit_metrics: List[Tuple[str, Dict[str, Scalar]]]):
         """Aggregates verification keys and scores."""
@@ -98,19 +104,14 @@ class ZkAvg(FedAvg):
 
     def _filter_clients(self, clients: List[ClientProxy]) -> List[ClientProxy]:
         """Filter clients based on their contribution score."""
-        # TODO replace this computation with a more complex one
-        # where similar clients with a similar score are maintained
-        # and other not
-        
-        filtered_clients = []
-        for c in clients:
-            #score = self.client_data[c.cid][1]
-            proof_is_valid = self.client_data[c.cid][2]
-            # TODO just not select invalid clients, then use also score
-            if proof_is_valid:
-                filtered_clients.append(c)
-                
+        filtered_clients = [c for c in clients if self._is_client_valid(c.cid)]
         return filtered_clients
+
+    
+    def num_fit_clients(self, num_available_clients: int, fraction_fit: float) -> tuple[int, int]:
+        """Return the sample size and the required number of available clients."""
+        num_clients = int(num_available_clients * fraction_fit)
+        return max(num_clients, self.min_fit_clients), self.min_available_clients
 
     def aggregate_fit(
         self,
@@ -138,6 +139,7 @@ class ZkAvg(FedAvg):
         # aggregate keys, score and normalize them
         if server_round == 1:
             self._aggregate_score(results)
+            self._create_set_of_clients_with_valid_proofs()
 
         return parameters_aggregated, {}
 
@@ -152,17 +154,17 @@ class ZkAvg(FedAvg):
         
         fit_ins = FitIns(parameters, config)
         
-        
+        fraction_fit = 1.0 if server_round == 1 else self.fraction_fit
+
         sample_size, min_num_clients = self.num_fit_clients(
-            client_manager.num_available()
+            client_manager.num_available(), fraction_fit
         )
 
         clients = client_manager.sample(
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
-        # do not filter when is the first round
-        if server_round != 1:
+        if server_round > 1:
             clients = self._filter_clients(clients)
         
         # Return client/config pairs

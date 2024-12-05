@@ -34,7 +34,7 @@ def get_on_fit_config(cfg: Dict[str, any]):
         
         # learning rate decay of 0.995 per round
         initial_lr = cfg.get("lr", 0.1)
-        lr = initial_lr * (0.995 ** server_round) if server_round > 1 else initial_lr
+        lr = initial_lr * (cfg["decay_per_round"] ** server_round) if server_round > 1 else initial_lr
         
         return {
             "server_round": server_round,
@@ -131,16 +131,22 @@ def get_strategy(
         common_args["fraction_fit"] = 1.0
         strategy_class = MerkleProofAvg
 
-    elif cfg['strategy'] in ['ContAvg', 'ZkAvg']:
+    elif cfg['strategy'] == 'ContAvg':
         
         common_args["fraction_fit"] = 1.0 
         common_args['selection_thr'] = cfg['selection_thr']
-        strategy_class = ContributionAvg if cfg['strategy'] == 'ContAvg' else ZkAvg
+        strategy_class = ContributionAvg
+
+    elif cfg['strategy'] == 'ZkAvg':
+        common_args['selection_thr'] = cfg['selection_thr']
+        strategy_class = ZkAvg
+
     elif cfg['strategy'] in ['PoC', 'PoCZk']:
         common_args['d'] = cfg['d']
         strategy_class = PoC if cfg['strategy'] == 'PoC' else PoCZk
     
-    # create a custom file based on number of classes of the dataset
+    # create a custom zok file based on number of classes of the dataset
+    # it is required for zokrates compilation
     if cfg['strategy'] in ['ZkAvg', 'PoCZk']:
         create_contribution_zokrates_file(cfg)
 

@@ -48,17 +48,6 @@ def load_history(file_path: str):
 def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool):
     """
     Read numpy files for FedAvg strategy with different alpha values and plot their centralized accuracy.
-
-    Parameters
-    ----------
-    save_plot_path : Path
-        Folder to save the plot to.
-    num_rounds : int
-        Number of rounds in the simulation.
-    dataset_distribution : str
-        Distribution of the dataset used.
-    secaggplus : bool
-        Whether SecAgg+ was used or not.
     """
     alpha_values = [0.03, 0.1, 0.5, 1.0, 2.0]
     plt.figure(figsize=(10, 6))
@@ -89,24 +78,14 @@ def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distr
 def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], strategies: List[str]):
     """
     Read numpy files for strategies and plot their accuracy and loss.
-
-    Parameters
-    ----------
-    save_plot_path : Path
-        Directory to save the plot to.
-    config : dict[str, any]
-        Configuration dictionary containing simulation parameters
-    strategies : List[str]
-        List of strategies to compare
     """
-
     dataset = config["dataset_name"]
     smoothed_plot = config["smoothed_plots"]
     file_suffix = generate_file_suffix(config)
 
     _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
     
-    result_path = save_plot_path / Path("simulation") / Path(file_suffix.lstrip('_'))
+    result_path = save_plot_path / Path(file_suffix.lstrip('_'))
 
     for strategy in strategies:
         
@@ -146,7 +125,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     
     plt.savefig(result_path / "comparison.png")
     plt.close()
-
+    return result_path
 
 def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
     """
@@ -159,7 +138,8 @@ def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
     x_values = [0.1, 0.3, 0.5]
     iid_ratio = [0.3, 0.5, 0.7]
     plt.figure(figsize=(10, 6))
-
+    
+    # TODO THE FOLLOWING file_path DOES NOT WORK NOW
     for x, iid_ratio in zip(x_values, iid_ratio):
         file_path = save_plot_path / f"R=40_P=iid_and_non_iid_D=FMNIST_x=1_iid_ratio={iid_ratio}_bal=False_iid_df={x}/{filename}.npy"
         history = np.load(file_path, allow_pickle=True).item()

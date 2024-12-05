@@ -22,18 +22,7 @@ class NetMnist(nn.Module):
         self.fc2 = nn.Linear(512, num_classes) 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass of the CNN.
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input Tensor that will pass through the network
-
-        Returns
-        -------
-        torch.Tensor
-            The resulting Tensor after it has passed through the network
-        """
+        
         x = F.relu(self.conv1(x))
         x = self.pool(x)
         x = F.relu(self.conv2(x))

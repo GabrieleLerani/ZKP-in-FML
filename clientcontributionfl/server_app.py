@@ -83,9 +83,14 @@ def create_workflow(params):
 def save_history(history, params):
 
     strategy = params["strategy_name"]
-    file_suffix = generate_file_suffix(params)
+    dataset_name = params["dataset_name"]
+    honest_or_dishonest_client = "dishonest" if params["dishonest"] else "honest"
 
-    save_dir = Path(params['save_path']) / Path("simulation") / Path(file_suffix.lstrip('_'))
+    file_suffix = generate_file_suffix(params)
+    
+    simulation_path = Path(params['save_path']) / Path("simulation") / Path(dataset_name) / Path(honest_or_dishonest_client)
+
+    save_dir = simulation_path / Path(file_suffix.lstrip('_'))
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Save the history in the new directory

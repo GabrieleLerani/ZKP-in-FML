@@ -40,7 +40,7 @@ class PoCZk(ZkAvg):
     ):
         super().__init__(d, *args, **kwargs)
         self.d = d # size of candidate set m <= d <= K
-        self.m = 1 # number of clients -> max(CK, 1)
+        self.m = 1 # number of clients equal to max(CK, 1)
         self.candidate_set : List[ClientProxy] = []
         self.active_clients: List[ClientProxy] = []
         self.filtered_probabilities : List[float] = []
@@ -195,9 +195,6 @@ class PoCZk(ZkAvg):
 
     def _filter_clients(self, clients: List[ClientProxy]) -> List[ClientProxy]:
         """Filter clients based on their contribution score."""
-        # TODO replace this computation with a more complex one
-        # where similar clients with a similar score are maintained
-        # and other not
         
         filtered_clients = []
         total = 0.0

@@ -44,7 +44,7 @@ balanced = false  # if true iid partitions will have same size.
 plot_label_distribution = true
 num_classes_per_partition = 5 # only for pathological distribution
 alpha = 0.5
-batch_size = 8
+batch_size = 10
 
 # dataset config for non_iid nodes
 iid_ratio = 0.7 # percentage of iid_node
@@ -70,7 +70,8 @@ max_weight = 9000
 gamma = 0.0 # weight of score
 device = "cpu"
 num_epochs = 1
-lr = 0.01
+lr = 0.01 # use 0.25 for CIFAR10 as used in FedAvg paper
+decay_per_round = 0.995 # use 0.99 for CIFAR10 as used in FedAvg paper 
 
 # zk proof params
 scale = 10000000 # weight of the diversity score
