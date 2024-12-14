@@ -237,8 +237,8 @@ The last function outputs the following result:
 
 
 ### Testing Setup
-I tested on MNIST dataset with 10 clients for 10 rounds. The main metrics are the centralized accuracy and loss. One interesting case is when non-IID clients submit fake scores, under this setting is expected that `ZkAvg` achieves better accuracy than `ContAvg`.
-To represent non-IID clients I used the `LabelBasedPartitioner` with `x=2` and `iid_ratio=0.7`
+I tested on MNIST, FMNIST and CIFAR10 dataset with 10 clients for 200 rounds. The main metrics are the centralized accuracy and loss. One interesting case is when non-IID clients submit fake scores, under this setting is expected that `ZkAvg` and `PoCZk` achieves better accuracy than `ContAvg`.
+To represent non-IID clients I used the `LabelBasedPartitioner` with `x=2` and `iid_ratio in {0.3, 0.5, 0.7}`.
 
 ## Configuration ⚙️
 
@@ -261,7 +261,6 @@ To run the Federated Learning simulation:
    ```
    python main.py --strategies ZkAvg,ContAvg,FedAvg --num_rounds 10 --num_nodes 10
    ```
-You can override other configurations parameters (learning rate, batch size etc.)directly changing `pyproject.toml`.
 
 ## Results 📊
 The results of the training, including accuracy scores and any generated plots, will be saved in the `results/` directory.
