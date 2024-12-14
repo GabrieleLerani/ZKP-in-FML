@@ -121,6 +121,9 @@ def save_simulation_results(strategies, config):
     dataset = config["dataset_name"]
     dishonest = "dishonest" if config["dishonest"] else "honest"
     results_path = Path(config["save_path"]) / Path("simulation") / Path(dataset) / Path(dishonest) 
+    
+    
+    
     simulation_path = plot_comparison_from_files(
         save_plot_path=results_path,
         config=config,
@@ -132,5 +135,5 @@ def save_simulation_results(strategies, config):
 if __name__ == "__main__":
     main()
 
-    # results_path = Path("results/simulation")
+    # results_path = Path("results/simulation/PoC_worst_case")
     # plot_accuracy_for_different_x(results_path, "history_S=PoC") 

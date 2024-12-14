@@ -139,7 +139,7 @@ def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
     iid_ratio = [0.3, 0.5, 0.7]
     plt.figure(figsize=(10, 6))
     
-    # TODO THE FOLLOWING file_path DOES NOT WORK NOW
+    
     for x, iid_ratio in zip(x_values, iid_ratio):
         file_path = save_plot_path / f"R=40_P=iid_and_non_iid_D=FMNIST_x=1_iid_ratio={iid_ratio}_bal=False_iid_df={x}/{filename}.npy"
         history = np.load(file_path, allow_pickle=True).item()
