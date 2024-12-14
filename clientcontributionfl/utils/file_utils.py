@@ -24,14 +24,12 @@ def generate_file_suffix(params: dict) -> str:
     alpha = params.get("alpha", None)
     x_non_iid = params.get("x_non_iid", None)
     iid_ratio = params.get("iid_ratio", None)
-    #dishonest = params.get("dishonest", False)
     balanced = params.get("balanced", False)
     iid_data_fraction = params.get("iid_data_fraction", None)
 
     include_alpha = (f"_alpha={alpha}" if partitioner == "dirichlet" and alpha is not None else "")
     include_x = (f"_x={x_non_iid}" if partitioner == "iid_and_non_iid" and x_non_iid is not None else "")
     include_iid_ratio = (f"_iid_ratio={iid_ratio}" if partitioner == "iid_and_non_iid" and iid_ratio is not None else "")
-    #include_dishonest = (f"_dishonest" if dishonest else "")
     include_sec_agg = ("SecAgg" if secaggplus else "")
     include_balanced = (f"_bal={balanced}" if partitioner == "iid_and_non_iid" else "")
     include_iid_data_fraction = (f"_iid_df={iid_data_fraction}" if include_balanced and iid_data_fraction is not None else "")
@@ -39,12 +37,10 @@ def generate_file_suffix(params: dict) -> str:
     file_suffix = (
         f"R={num_rounds}"
         f"_P={partitioner}"
-        #f"_D={dataset}"
         + include_sec_agg
         + include_alpha 
         + include_x 
         + include_iid_ratio 
-        #+ include_dishonest
         + include_balanced
         + include_iid_data_fraction
     )

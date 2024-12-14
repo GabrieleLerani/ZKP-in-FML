@@ -71,7 +71,7 @@ gamma = 0.0 # weight of score
 device = "cpu"
 num_epochs = 1
 lr = 0.01 # use 0.25 for CIFAR10 as used in FedAvg paper
-decay_per_round = 0.995 # use 0.99 for CIFAR10 as used in FedAvg paper 
+decay_per_round = 0.995 # use 0.985 for CIFAR10 as used in FedAvg paper 
 
 # zk proof params
 scale = 10000000 # weight of the diversity score

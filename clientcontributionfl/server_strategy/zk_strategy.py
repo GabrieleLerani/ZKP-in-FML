@@ -81,7 +81,6 @@ class ZkAvg(FedAvg):
         
         for client_id, metrics in fit_metrics:
             for _, verification_key_path in metrics.items():
-                #client_id = key.split('_')[1]
                 self.client_data[client_id][0] = verification_key_path # path of the verification key
                 self.client_data[client_id][1] = extract_score_from_proof(os.path.join(verification_key_path, "proof.json"))
         

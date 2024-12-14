@@ -28,13 +28,14 @@ def get_evaluate_metrics_aggregation(cfg: Dict[str, any]):
 def get_on_fit_config(cfg: Dict[str, any]):
     """Return function that prepares config to send to clients."""
 
+    initial_lr = cfg.get("lr", 0.01)
+    decay_per_round = cfg.get("decay_per_round", 0.995)
+    
     def fit_config_fn(server_round: int):
         
         """Construct `config` that clients receive when running `fit()`"""
         
-        # learning rate decay of 0.995 per round
-        initial_lr = cfg.get("lr", 0.1)
-        lr = initial_lr * (cfg["decay_per_round"] ** server_round) if server_round > 1 else initial_lr
+        lr = initial_lr * (decay_per_round ** server_round) if server_round > 1 else initial_lr
         
         return {
             "server_round": server_round,
@@ -45,9 +46,7 @@ def get_on_fit_config(cfg: Dict[str, any]):
         
         """Construct `config` that clients receive when running `fit()`"""
         
-        # learning rate decay of 0.995 per round
-        initial_lr = cfg.get("lr", 0.1)
-        lr = initial_lr * (0.995 ** server_round) if server_round > 1 else initial_lr
+        lr = initial_lr * (decay_per_round ** server_round) if server_round > 1 else initial_lr
         
         return {
             "server_round": server_round,
