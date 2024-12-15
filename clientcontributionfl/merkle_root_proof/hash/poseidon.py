@@ -49,7 +49,7 @@ def poseidon_hash(inputs: list[int]):
     for i in range(1, t):
         state[i] = inputs[i - 1]
 
-    # Apply rounds
+    
     for r in range(f + p):
         state = ark(state, c, r * t, t)
         state = sbox(state, f, p, r, t)
