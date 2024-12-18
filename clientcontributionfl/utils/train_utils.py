@@ -113,13 +113,22 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax1.set_xlabel("Rounds")
     ax1.set_ylabel("Accuracy")
     ax1.legend(loc="lower right")
+    
     ax1.set_ylim([0.1, 1])
+    ax2.set_ylim([0, 9])
+    if "MNIST" in dataset and "honest" in str(result_path):
+        ax1.set_ylim([0.7, 1])
+        ax2.set_ylim([0, 1.5])
+    
+    elif "FMNIST" in dataset and "honest" in str(result_path):
+        ax2.set_ylim([0, 3])
+    
 
     ax2.set_title(f"Centralized Training Loss - {dataset}")
     ax2.set_xlabel("Rounds")
     ax2.set_ylabel("Loss")
     ax2.legend(loc="upper right")
-    ax2.set_ylim([0, 9])
+    
 
     plt.tight_layout()
     
