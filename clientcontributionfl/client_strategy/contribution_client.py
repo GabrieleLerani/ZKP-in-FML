@@ -3,8 +3,7 @@ import torch
 from clientcontributionfl.models import train
 from clientcontributionfl.utils import compute_score
 from clientcontributionfl.client_strategy import FedAvgClient
-
-
+from clientcontributionfl.utils import measure_cpu_and_time
 
 
 class ContributionClient(FedAvgClient):
@@ -35,6 +34,7 @@ class ContributionClient(FedAvgClient):
         self.thr = self.config["thr"]
         self.dishonest_value = self.config["dishonest_value"]
 
+    @measure_cpu_and_time(csv_file="cont_avg_metric.csv")
     def fit(self, parameters, config):
         """Train model received by the server (parameters) using the data.
         Skip training in first round and only return contribution score.
@@ -44,6 +44,7 @@ class ContributionClient(FedAvgClient):
 
         # compute dataset score on the first round
         if config["server_round"] == 1:
+            
             # compute dataset score
             score = compute_score(
                 counts=self.partition_label_counts, 
@@ -51,13 +52,15 @@ class ContributionClient(FedAvgClient):
                 beta=self.beta, 
                 thr=self.thr
             )
-
+            
             # create a forged score
             if self.dishonest:
                 score = self.dishonest_value
                 
 
             params[f"score_{self.node_id}"] = score
+
+            
         
         # train the model in any other rounds
         else:

@@ -1,4 +1,4 @@
-# datasets=("MNIST")
+# datasets=("FMNIST" "MNIST" "CIFAR10")
 # iid_ratios=(0.3 0.5 0.7)
 
 # # Flag to track the state of the script
@@ -40,5 +40,5 @@
 #   done
 # done
 
-cmd="python main.py --strategies FedAvg --num_rounds 100 --num_nodes 10 --dataset FMNIST --iid_ratio 0.7 --dishonest --balanced --x 2 --d 5"
+cmd="python main.py --partitioner iid --strategies PoCZk,ZkAvg,ContAvg,FedAvg --num_rounds 1 --num_nodes 10 --dataset FMNIST --iid_ratio 1.0 --d 5"
 $cmd

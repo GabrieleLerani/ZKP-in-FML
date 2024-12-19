@@ -17,7 +17,7 @@ from clientcontributionfl.models import train, test
 # relative imports
 from clientcontributionfl.utils import compute_score, forge_score_in_proof
 from clientcontributionfl import Zokrates
-
+from clientcontributionfl.utils import measure_cpu_and_time
 
 class ZkClient(NumPyClient):
     """Define a Flower Client that utilizes Zero-Knowledge Proofs (ZKP) for secure federated learning.
@@ -146,6 +146,7 @@ class ZkClient(NumPyClient):
         """
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
+    @measure_cpu_and_time(csv_file="zk_avg_metric.csv")
     def fit(self, parameters, config):
         """Train the model using the client's data and return updated parameters.
 

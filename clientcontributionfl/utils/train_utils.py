@@ -10,6 +10,12 @@ from enum import Enum, auto
 from .file_utils import generate_file_suffix
 from flwr_datasets.visualization import plot_label_distributions
 from flwr_datasets.partitioner import Partitioner
+import psutil
+import time
+from typing import Callable, Any, Tuple
+import csv
+from functools import wraps
+from pathlib import Path
 
 class SelectionPhase(Enum):
     """Enum to track the current phase of the client selection process"""
@@ -116,13 +122,6 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     
     ax1.set_ylim([0.1, 1])
     ax2.set_ylim([0, 9])
-    if "MNIST" in dataset and "honest" in str(result_path):
-        ax1.set_ylim([0.7, 1])
-        ax2.set_ylim([0, 1.5])
-    
-    elif "FMNIST" in dataset and "honest" in str(result_path):
-        ax2.set_ylim([0, 3])
-    
 
     ax2.set_title(f"Centralized Training Loss - {dataset}")
     ax2.set_xlabel("Rounds")
@@ -307,3 +306,63 @@ def write_zok_file(filename: str, template, directory: str = None) -> str:
     with open(file_path, "w") as f:
         f.write(template)
     return file_path
+
+
+
+def measure_cpu_and_time(csv_file="client_metrics.csv"):
+    """
+    Decorator to measure CPU utilization and execution time (in microseconds) of a function
+    and log the results into a CSV file.
+
+    Args:
+        csv_file (str): The path to the CSV file where metrics will be saved.
+    
+    Returns:
+        Callable: A wrapped function that logs CPU and time metrics.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Ensure the directory for the CSV file exists
+            csv_path = Path(csv_file)
+            if not csv_path.parent.exists():
+                csv_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Record initial CPU utilization and time
+            start_cpu = psutil.cpu_percent(interval=None)
+            start_time = time.time()
+            
+            # Execute the wrapped function
+            result = func(*args, **kwargs)
+            
+            # Record final CPU utilization and time
+            end_time = time.time()
+            end_cpu = psutil.cpu_percent(interval=None)
+            
+            # Calculate the total time in microseconds and average CPU usage
+            time_taken_us = (end_time - start_time) * 1_000_000  # Convert to microseconds
+            avg_cpu_utilization = (start_cpu + end_cpu) / 2  # Approximation
+            
+            # Log the results to the CSV file
+            with open(csv_file, mode="a", newline="") as file:
+                writer = csv.writer(file)
+                # Write header if the file is new
+                if csv_path.stat().st_size == 0:
+                    writer.writerow(["Execution Time (µs)", "Avg CPU Utilization (%)"])
+                # Write data
+                writer.writerow([f"{time_taken_us:.0f}", f"{avg_cpu_utilization:.2f}"])
+            
+            print(f"Function '{func.__name__}' executed in {time_taken_us:.0f} µs")
+            print(f"Average CPU utilization: {avg_cpu_utilization:.2f}%")
+            
+            return result
+        
+        return wrapper
+    return decorator
+
+
+
+def measure_memory_usage():
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    return memory_info.rss / 1e6  

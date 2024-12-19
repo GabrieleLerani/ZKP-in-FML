@@ -4,9 +4,11 @@ from clientcontributionfl.models import train, test_random_batch
 from clientcontributionfl.utils import compute_score, forge_score_in_proof, string_to_enum, SelectionPhase
 from .zkavg_client import ZkClient
 from .fedavg_client import FedAvgClient
+from clientcontributionfl.utils import measure_cpu_and_time
 
 class PoCZkClient(ZkClient):
     
+    @measure_cpu_and_time(csv_file="poc_avg_metric.csv")
     def fit(self, parameters, config):
         """Train the model using the client's data and return updated parameters.
 
