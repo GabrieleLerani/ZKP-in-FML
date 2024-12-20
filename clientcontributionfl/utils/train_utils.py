@@ -89,7 +89,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     smoothed_plot = config["smoothed_plots"]
     file_suffix = generate_file_suffix(config)
 
-    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
+    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 10))
     
     result_path = save_plot_path / Path(file_suffix.lstrip('_'))
 
@@ -120,15 +120,20 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     ax1.set_ylabel("Accuracy")
     ax1.legend(loc="lower right")
     
+
     ax1.set_ylim([0.1, 1])
     ax2.set_ylim([0, 9])
+
+    if dataset == "MNIST" and "honest" in str(result_path):
+        ax1.set_ylim([0.7, 1])
+        ax2.set_ylim([0, 4])
 
     ax2.set_title(f"Centralized Training Loss - {dataset}")
     ax2.set_xlabel("Rounds")
     ax2.set_ylabel("Loss")
     ax2.legend(loc="upper right")
     
-
+    
     plt.tight_layout()
     
     plt.savefig(result_path / "comparison.png")
@@ -145,7 +150,7 @@ def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
     """
     x_values = [0.1, 0.3, 0.5]
     iid_ratio = [0.3, 0.5, 0.7]
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(8, 10))
     
     
     for x, iid_ratio in zip(x_values, iid_ratio):
