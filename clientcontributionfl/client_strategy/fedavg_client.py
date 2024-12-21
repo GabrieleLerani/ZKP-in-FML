@@ -14,8 +14,6 @@ from torchmetrics import Accuracy
 from clientcontributionfl.models import train, test
 
 
-
-
 class FedAvgClient(NumPyClient):
     """Define a standard client acting in FedAvg strategy."""
 

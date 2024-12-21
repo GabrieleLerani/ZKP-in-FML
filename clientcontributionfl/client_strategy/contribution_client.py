@@ -34,7 +34,7 @@ class ContributionClient(FedAvgClient):
         self.thr = self.config["thr"]
         self.dishonest_value = self.config["dishonest_value"]
 
-    @measure_cpu_and_time(csv_file="cont_avg_metric.csv")
+    #@measure_cpu_and_time(csv_file="cont_avg_metric.csv")
     def fit(self, parameters, config):
         """Train model received by the server (parameters) using the data.
         Skip training in first round and only return contribution score.

@@ -146,7 +146,7 @@ class ZkClient(NumPyClient):
         """
         return [val.cpu().numpy() for _, val in self.model.state_dict().items()]
 
-    @measure_cpu_and_time(csv_file="zk_avg_metric.csv")
+    #@measure_cpu_and_time(csv_file="zk_avg_metric.csv")
     def fit(self, parameters, config):
         """Train the model using the client's data and return updated parameters.
 

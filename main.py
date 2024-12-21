@@ -5,7 +5,6 @@ from flwr.common.config import get_project_config
 from pathlib import Path
 
 
-# TODO in toml file check all unused parameters.
 def main():
     
     
@@ -65,9 +64,9 @@ def add_parser_arguments(parser : argparse.ArgumentParser):
 def run_simulations(args):
     """Run simulation for each strategy."""
     strategies = args.strategies
-    # for strategy in strategies:
-    #     cleanup_proofs()
-    #     run_simulation(args, strategy)
+    for strategy in strategies:
+        cleanup_proofs()
+        run_simulation(args, strategy)
 
 def run_simulation(args, strategy):
 

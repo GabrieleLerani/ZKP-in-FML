@@ -140,6 +140,9 @@ def check_arguments(args):
     except ValueError as e:
         print(f"Invalid arguments: {str(e)}")
         return False
+    except ResourceWarning as r:
+        print(f"Invalid arguments: {r}")
+        return False
 
 def _check_strategies(strategies: List[str]):
     valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "PoC", "PoCZk", "MPAvg"}
@@ -151,7 +154,7 @@ def _check_strategies(strategies: List[str]):
 def _check_num_clients(clients: int):
     if clients < 1:
         raise ValueError("Number of client must be greater than or equal to 1")
-    elif clients > 50:
+    elif clients > 100:
         raise ResourceWarning("A large number of clients may cause some clients to quit unexpectedly during training.")
     return True
 

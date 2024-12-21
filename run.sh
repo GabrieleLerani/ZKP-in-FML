@@ -1,7 +1,7 @@
-datasets=("FMNIST" "MNIST" "CIFAR10")
+datasets=("FMNIST")
 iid_ratios=(0.3 0.5 0.7)
 
-num_nodes=100
+num_nodes=50
 
 # Loop through each dataset
 for dataset in "${datasets[@]}"; do
@@ -9,9 +9,9 @@ for dataset in "${datasets[@]}"; do
   for iid_ratio in "${iid_ratios[@]}"; do
 
     if [[ $iid_ratio == 0.3 || $iid_ratio == 0.5 ]]; then
-      d_value=3
+      d_value=15
     else
-      d_value=5
+      d_value=25
     fi
 
     # Set the base command

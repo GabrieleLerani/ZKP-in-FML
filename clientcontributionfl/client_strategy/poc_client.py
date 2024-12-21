@@ -8,7 +8,7 @@ from clientcontributionfl.utils import measure_cpu_and_time
 
 class PoCZkClient(ZkClient):
     
-    @measure_cpu_and_time(csv_file="poc_avg_metric.csv")
+    #@measure_cpu_and_time(csv_file="poc_avg_metric.csv")
     def fit(self, parameters, config):
         """Train the model using the client's data and return updated parameters.
 
