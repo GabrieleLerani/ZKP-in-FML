@@ -15,7 +15,8 @@ dependencies = [
     "torch==2.4.1",
     "torchmetrics",
     "torchvision==0.19.1",
-    "matplotlib==3.9.2"
+    "matplotlib==3.9.2",
+    "scikit-learn"
 ]
 
 [tool.hatch.build.targets.wheel]

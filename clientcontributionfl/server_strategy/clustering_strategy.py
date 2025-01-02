@@ -19,27 +19,18 @@ from logging import INFO
 from pprint import PrettyPrinter
 
 from collections import defaultdict
-from clientcontributionfl.utils import aggregate
+from clientcontributionfl.utils import aggregate, aggregate_between_clusters
+import numpy as np
+from sklearn.cluster import AgglomerativeClustering
 
 
-class ContributionAvg(FedAvg):
-    """
+class CLAvg(FedAvg):
     
-    ContributionAvg is a strategy that extends the FedAvg algorithm by incorporating
-    contribution aggregation of score sent by clients. Scores are computed locally
-    by clients and nodes with poor contribution are filtered out and no considered for
-    the next round of training.
-
-
-    Attributes:
-        client_data (defaultdict): A dictionary storing contribution scores for each client.
-        discarding_threshold (float): A threshold below which clients are considered to have poor contributions and are filtered out.
-    """
-
     def __init__(self, selection_thr: float,*args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client_data = defaultdict(lambda: 1)
-        self.discarding_threshold: float = selection_thr 
+        self.clusters : dict[str, int] = {}
+        self.discarding_threshold: float = selection_thr  
 
     def _normalize_scores(self):
         """
@@ -74,13 +65,29 @@ class ContributionAvg(FedAvg):
         
         log(INFO, "Score aggregated")
    
-    def _filter_clients(self, clients: List[ClientProxy]) -> List[ClientProxy]:
-        """Filter clients based on their contribution score."""
+    def _cluster_clients(self) -> Dict[str, int]:
+        """Filter clients based on their contribution score and return a dictionary of clusters."""
+
+        # Extract client scores into a numpy array
+        scores = np.array(list(self.client_data.values())).reshape(-1, 1)  # Reshape for clustering
+
+        # Create and fit the AgglomerativeClustering model
+        clustering = AgglomerativeClustering(
+            n_clusters=None,
+            distance_threshold=0.0001,
+            metric="l1",  
+            linkage="complete"
+        )
+        clustering.fit(scores)
         
-        filtered_clients = [c for c in clients if self.client_data[c.cid] >= self.discarding_threshold]
-        return filtered_clients
+        # Create a dictionary where the key is the client cid and the value is its corresponding cluster
+        client_clusters = {}
+        for client_id, label in zip(self.client_data.keys(), clustering.labels_):
+            client_clusters[client_id] = label
+        
+        return client_clusters
 
-
+        
     def aggregate_fit(
         self,
         server_round: int,
@@ -94,24 +101,44 @@ class ContributionAvg(FedAvg):
         if not self.accept_failures and failures:
             return None, {}
 
-        else:
-            # Convert results
-            weights_results = [
-                (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
-                for _, fit_res in results
-            ]
-            aggregated_ndarrays = aggregate(weights_results)
-
-        parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
-
-        # aggregate keys, score and normalize them
+        # aggregate scores and create cluster based on their similarity
         if server_round == 1:
             fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
             self._aggregate_scores(fit_metrics)
             self._normalize_scores()
-            PrettyPrinter(indent=4).pprint(self.client_data)
+            self.clusters = self._cluster_clients()
+            PrettyPrinter(indent=4).pprint(self.clusters)
+            weights_results = [
+                (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples, )
+                for _, fit_res in results
+            ]
+            aggregated_ndarrays = aggregate(weights_results)
+
+        else:
+
+            weights_results = [
+                (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples, client.cid)
+                for client, fit_res in results
+            ]
+            aggregated_ndarrays = aggregate_between_clusters(weights_results, self.clusters)
+
+        parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
 
         return parameters_aggregated, {}
+
+    def _get_clients_by_cluster(self, clients: list[ClientProxy]) -> dict[int, list[str]]:
+        clusters = {}
+        for client in clients:
+            cluster_id = self.clusters[client.cid]
+            if cluster_id not in clusters:
+                clusters[cluster_id] = []
+            clusters[cluster_id].append(client)
+        return clusters
+
+
+    def num_fit_clients(self, num_available_clients: int) -> tuple[int, int]:
+        """Return the sample size and the required number of available clients."""
+        return max(num_available_clients, self.min_fit_clients), self.min_available_clients
 
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
@@ -121,9 +148,6 @@ class ContributionAvg(FedAvg):
         if self.on_fit_config_fn is not None:
             # Custom fit config function provided
             config = self.on_fit_config_fn(server_round)
-        # TODO fit_ins is only one but you can create a different one
-        # for each client, could be useful for client clustering.
-        fit_ins = FitIns(parameters, config)
         
         
         sample_size, min_num_clients = self.num_fit_clients(
@@ -134,10 +158,21 @@ class ContributionAvg(FedAvg):
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
-        # do not filter when is the first round
-        if server_round != 1:
-            clients = self._filter_clients(clients)
-        
+        if server_round > 1:
+            # Split clients into sublists based on their cluster
+            cluster_clients = self._get_clients_by_cluster(clients)
+
+            # Select a fraction of clients from each cluster and print their cid
+            selected_clients = []
+            for cluster_id, cluster_list in cluster_clients.items():
+                num_clients_to_sample = max(1, int(len(cluster_list) * self.fraction_fit))
+                sampled_clients = np.random.choice(cluster_list, num_clients_to_sample, replace=False).tolist()
+                selected_clients.extend(sampled_clients)
+                log(INFO, f"Selected clients from cluster {cluster_id}: {[c.cid for c in sampled_clients]}")
+            clients = selected_clients
+
+        fit_ins = FitIns(parameters, config)
+
         # Return client/config pairs
         return [(client, fit_ins) for client in clients]
 
@@ -164,9 +199,6 @@ class ContributionAvg(FedAvg):
         clients = client_manager.sample(
             num_clients=sample_size, min_num_clients=min_num_clients
         )
-
-        # filter clients based on score
-        clients = self._filter_clients(clients)
 
         # Return client/config pairs
         return [(client, evaluate_ins) for client in clients]

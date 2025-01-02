@@ -10,7 +10,7 @@ from flwr.common import Metrics, Scalar
 from flwr.server.strategy import FedAvg, Strategy
 
 import clientcontributionfl.models as models
-from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC, MerkleProofAvg
+from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC, MerkleProofAvg, CLAvg
 from clientcontributionfl.utils import get_model_class, generate_zok_client_score_template, write_zok_file
 
 
@@ -134,7 +134,12 @@ def get_strategy(
         
         common_args["fraction_fit"] = 1.0 
         common_args['selection_thr'] = cfg['selection_thr']
-        strategy_class = ContributionAvg
+        strategy_class = ContributionAvg 
+
+    elif cfg['strategy'] == 'CLAvg':
+        common_args["fraction_fit"] = 0.8 
+        common_args['selection_thr'] = cfg['selection_thr']
+        strategy_class = CLAvg
 
     elif cfg['strategy'] == 'ZkAvg':
         common_args['selection_thr'] = cfg['selection_thr']

@@ -13,6 +13,7 @@ def create_client(strategy: str, **kwargs) -> Client:
         "FedAvg": FedAvgClient,
         "ZkAvg": ZkClient,
         "ContAvg": ContributionClient,
+        "CLAvg": ContributionClient,
         "PoC": PoCClient,
         "PoCZk": PoCZkClient,
         "MPAvg": MerkleProofClient
@@ -72,7 +73,7 @@ def client_fn(context: Context) -> Client:
         
         return create_client(config["strategy"], **common_args)
     
-    elif config["strategy"] == "ContAvg":
+    elif config["strategy"] in ["ContAvg", "CLAvg"]:
         partition_counts = compute_partition_counts(
             data_loader=train_loader,
             partition_id=partition_id,

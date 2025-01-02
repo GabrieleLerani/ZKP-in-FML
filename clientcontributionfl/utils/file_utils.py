@@ -145,7 +145,7 @@ def check_arguments(args):
         return False
 
 def _check_strategies(strategies: List[str]):
-    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "PoC", "PoCZk", "MPAvg"}
+    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "CLAvg", "PoC", "PoCZk", "MPAvg"}
     invalid_strategies = [s for s in strategies if s not in valid_strategies]
     if invalid_strategies:
         raise ValueError(f"Invalid strategies: {invalid_strategies}. Valid options are: {valid_strategies}")

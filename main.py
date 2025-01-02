@@ -64,9 +64,9 @@ def add_parser_arguments(parser : argparse.ArgumentParser):
 def run_simulations(args):
     """Run simulation for each strategy."""
     strategies = args.strategies
-    for strategy in strategies:
-        cleanup_proofs()
-        run_simulation(args, strategy)
+    # for strategy in strategies:
+    #     cleanup_proofs()
+    #     run_simulation(args, strategy)
 
 def run_simulation(args, strategy):
 
@@ -132,7 +132,5 @@ def save_simulation_results(strategies, config):
 
 if __name__ == "__main__":
     main()
-    
-
     # results_path = Path("results/simulation/PoC_worst_case")
     # plot_accuracy_for_different_x(results_path, "history_S=PoC") 

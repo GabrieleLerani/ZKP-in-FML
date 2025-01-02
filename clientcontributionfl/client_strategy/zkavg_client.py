@@ -171,7 +171,7 @@ class ZkClient(NumPyClient):
             self.compute_zkp_contribution(score)
             params["vrfkey"] = self.path_proof_dir
             
-            # add additional value
+            # directly create a fake score in the proof.json file to simulate malicious client
             if self.dishonest: 
                 forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), self.dishonest_value)
 

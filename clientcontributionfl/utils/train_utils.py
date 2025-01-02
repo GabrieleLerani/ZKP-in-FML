@@ -204,6 +204,39 @@ def aggregate(results: list[tuple[NDArrays, int]]) -> NDArrays:
     ]
     return weights_prime
 
+def aggregate_between_clusters(results: list[tuple[NDArrays, int, str]], clusters: dict[str, int]) -> NDArrays:
+    """Compute weighted average within clusters and then average between clusters."""
+    
+    # Group results by cluster
+    cluster_results = {}
+    for weights, num_examples, client_id in results:
+        cluster_id = clusters[client_id]
+        if cluster_id not in cluster_results:
+            cluster_results[cluster_id] = []
+        cluster_results[cluster_id].append((weights, num_examples))
+    
+    # Compute weighted average within each cluster
+    cluster_averages = {}
+    for cluster_id, cluster_data in cluster_results.items():
+        num_examples_total = sum(num_examples for _, num_examples in cluster_data)
+        weighted_weights = [
+            [layer * num_examples for layer in weights] for weights, num_examples in cluster_data
+        ]
+        cluster_averages[cluster_id] = [
+            reduce(np.add, layer_updates) / num_examples_total
+            for layer_updates in zip(*weighted_weights)
+        ]
+    
+    # Compute the average between clusters
+    total_clients = len(results)
+    weights_prime: NDArrays = [
+        sum(cluster_averages[cluster_id][i] * len(cluster_results[cluster_id]) / total_clients
+            for cluster_id in cluster_averages)
+        for i in range(len(cluster_averages[next(iter(cluster_averages))]))
+    ]
+    
+    return weights_prime
+
 
 def generate_zok_client_score_template(classes: int):
     """
