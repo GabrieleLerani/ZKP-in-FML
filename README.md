@@ -81,7 +81,8 @@ clientcontributionfl/
   ├── server_utils.py # server functions used during training
   ├── server_app.py # Server configuration
   ├── client_app.py # Client configuration
-  └── zokrates_proof.py # Class to interact with zokrates tool
+  ├── zokrates.py # Zokrates class generate proofs
+  └── zero_knowledge.py # Abstract definition of zkSNARK tool
   
 
 results/
@@ -94,7 +95,7 @@ results/
 
 main.py # Entry point to run simulations
 pyproject.toml # configuration file
-
+... other files
 ```
 
 ## Tools and Dependencies 🛠️
