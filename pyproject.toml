@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "clientcontributionfl"
 version = "1.0.0"
-description = "A Flower-based Federated Learning project using FedAvg and SecAgg+ protocol"
+description = "A Flower-based Federated Learning project using zkSNARK for contribution proofs."
 authors = [
     {name = "Gabriele Lerani", email = "gabriele.lerani2000@gmail.com"},
 ]

@@ -35,12 +35,14 @@ Building on the concepts of contribution evaluation, this strategy adapts the **
   - The probability $`p_k`$ of selecting a client is based on normalized contribution scores. These scores consider not just the size of the dataset but also its **label distribution**, capturing richer information about the dataset's quality.  
   - The server selects clients with the highest local loss from a candidate set, ensuring efficient utilization of the most promising participants.  
 - **Integration with ZkAvg**: By combining this strategy with ZkAvg, the framework achieves both **privacy-preserving guarantees** and **faster model convergence**, outperforming simpler approaches like ContAvg and FedAvg.  
-
-Additionally to their contribution score, clients can prove that they own a dataset directly showing a batch of data. How is the server sure that the batch really belongs to the client dataset? The way I used to solve the problem is by combining Merkle Tree with Zero-Knowledge proofs.
+### 4. Merkle proof membership
+Additionally to their contribution score, clients can prove that they own a dataset directly showing a batch of data. This lead to the natural question of how is the server sure that the batch really belongs to the client dataset? The way I used to solve the problem is by combining **Merkle Tree** with **Zero-Knowledge proofs**.
 
 ### Key Concepts:
 - **Merkle Tree Structure**: A Merkle tree is a binary tree where each leaf node represents a hash of a data block, and each non-leaf node is a hash of its child nodes. This structure allows for efficient verification of data integrity and authenticity.
 - **Zero-Knowledge Proofs**: Zero-knowledge proofs enable one party (the prover) to prove to another party (the verifier) that they know a value (in this case, a data batch) without revealing any information about the value itself. This is achieved through cryptographic techniques that ensure the verifier can confirm the proof's validity without accessing the underlying data.
+- **Blockchain-based Verification**: A key innovation in this project is the integration of blockchain technology for zero-knowledge proof verification. The zkSNARK proof verification is executed on-chain through smart contracts, implemented using Zokrates and Web3.py. This represents one of the first implementations combining Web3.py with the Flower framework for federated learning.
+
 
 The aforementioned approach brings a lot of practical challenges, how I tackled them is reported in the implementation details section.
 
@@ -89,8 +91,6 @@ results/
   │ └── *.png # different stats for varying batch size
   └── simulation/ # simultions result for different configurations
 
-notebook/
-  └── *.ipynb # notebook with some example, still in progress
 
 main.py # Entry point to run simulations
 pyproject.toml # configuration file
@@ -101,8 +101,9 @@ pyproject.toml # configuration file
 
 - Flower (FL framework)
 - Zokrates (Zero-knowledge proof system)
-- PyTorch (Deep learning)
+- Ganache blockchain: https://archive.trufflesuite.com/ganache/
 - Python 3.8+
+
 
 ## Installation ⚙️
 
@@ -127,6 +128,7 @@ pyproject.toml # configuration file
    ```
    curl -LSfs get.zokrat.es | sh
    ```
+5. Install Ganache as detailed in https://archive.trufflesuite.com/ganache/ and start it
 
 ## Implementation Details 🔍
 [`ContAvg`](clientcontributionfl/server_strategy/contribution_strategy.py) and [`ZkAvg`](clientcontributionfl/server_strategy/zk_strategy.py) are very similar strategies: the general idea is to compute a score which represents client contribution to the global model training. However when client are dishonest they can submit a fake score and increase the likelihood of being selected for training. Zero-knowledge proofs guarantee to discard malicious clients and that's the main contribution of `ZkAvg`. Trivially, when all actor are honest `ZkAvg` and `ContAvg` are the same algorithm.
@@ -244,13 +246,10 @@ To represent non-IID clients I used the `LabelBasedPartitioner` with `x=2` and `
 
 The project configuration is managed through the `pyproject.toml` file. Key configurations include:
 
-- Number of rounds: 10
-- Fraction of clients for fitting and evaluation: 100%
-- Number of clients per round: 1
+- Number of rounds: 100
 - Dataset: MNIST
 - Distribution: "iid_and_non_iid" # Is the partitioner type
 - Batch size: 10
-- SecAgg+ parameters: 3 shares, reconstruction threshold of 2
 - Training parameters: learning rate 0.1, 2 epochs per round
 
 You can modify these parameters in the `pyproject.toml` file under the `[tool.flwr.app.config]` section.
@@ -261,6 +260,7 @@ To run the Federated Learning simulation:
    ```
    python main.py --strategies ZkAvg,ContAvg,FedAvg --num_rounds 10 --num_nodes 10
    ```
+Execute the `run.sh` script in order to simulate all the algorithms for all the dataset under iid settings.
 
 ## Results 📊
 The results of the training, including accuracy scores and any generated plots, will be saved in the `results/` directory.
