@@ -121,8 +121,7 @@ class ContributionAvg(FedAvg):
         if self.on_fit_config_fn is not None:
             # Custom fit config function provided
             config = self.on_fit_config_fn(server_round)
-        # TODO fit_ins is only one but you can create a different one
-        # for each client, could be useful for client clustering.
+        
         fit_ins = FitIns(parameters, config)
         
         

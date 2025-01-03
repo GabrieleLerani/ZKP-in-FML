@@ -12,10 +12,20 @@ from flwr_datasets.visualization import plot_label_distributions
 from flwr_datasets.partitioner import Partitioner
 import psutil
 import time
-from typing import Callable, Any, Tuple
+from typing import Optional
 import csv
 from functools import wraps
 from pathlib import Path
+from dataclasses import dataclass
+
+# TODO move into another place and change all the classes using self.client_data
+@dataclass
+class ClientData:
+    client_files_path: str = ""
+    contribution_score: float = 1.0
+    proof_valid: bool = False
+    contract_address: Optional[str] = None  
+    abi: Optional[str] = None  
 
 class SelectionPhase(Enum):
     """Enum to track the current phase of the client selection process"""

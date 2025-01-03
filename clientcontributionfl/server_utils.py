@@ -12,7 +12,7 @@ from flwr.server.strategy import FedAvg, Strategy
 import clientcontributionfl.models as models
 from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC, MerkleProofAvg, CLAvg
 from clientcontributionfl.utils import get_model_class, generate_zok_client_score_template, write_zok_file
-
+from clientcontributionfl import Zokrates
 
 from .dataset import get_num_classes
 
@@ -128,6 +128,7 @@ def get_strategy(
     
     elif cfg['strategy'] == 'MPAvg':
         common_args["fraction_fit"] = 1.0
+        common_args['verify_with_smart_contract'] = cfg['smart_contract']
         strategy_class = MerkleProofAvg
 
     elif cfg['strategy'] == 'ContAvg':
@@ -143,10 +144,16 @@ def get_strategy(
 
     elif cfg['strategy'] == 'ZkAvg':
         common_args['selection_thr'] = cfg['selection_thr']
+        common_args['verify_with_smart_contract'] = cfg['smart_contract']
+        common_args['zk_prover'] = Zokrates()
         strategy_class = ZkAvg
 
     elif cfg['strategy'] in ['PoC', 'PoCZk']:
         common_args['d'] = cfg['d']
+
+        if cfg['strategy'] == 'PoCZk':
+            common_args['verify_with_smart_contract'] = cfg['smart_contract']
+            common_args['zk_prover'] = Zokrates()
         strategy_class = PoC if cfg['strategy'] == 'PoC' else PoCZk
     
     # create a custom zok file based on number of classes of the dataset

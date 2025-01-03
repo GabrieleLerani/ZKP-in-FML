@@ -1,7 +1,7 @@
 import shutil
 import os
 import json
-from typing import List
+from typing import List, Tuple, Union
 
 def read_file_as_bytes(file_path: str) -> bytes:
     with open(file_path, "rb") as f:
@@ -116,7 +116,18 @@ def forge_score_in_proof(proof_file_path, forged_score):
         raise KeyError("'inputs' field is missing in the proof.json file.") from e
     except ValueError as e:
         raise ValueError(f"Invalid value in 'inputs' field: {e}") from e
+
+
+def load_proof_data(json_file_path: str) -> Tuple[List[int], List[List[int]], List[int], List[Union[int, str]]]:
+    with open(json_file_path, 'r') as file:
+        data = json.load(file)
     
+    proof_a = [int(x, 16) for x in data['proof']['a']]
+    proof_b = [[int(x, 16) for x in pair] for pair in data['proof']['b']]
+    proof_c = [int(x, 16) for x in data['proof']['c']]
+    inputs = [int(x, 16) if isinstance(x, str) else x for x in data['inputs']]
+
+    return [proof_a, proof_b, proof_c], inputs
 
 def check_arguments(args):
     try:

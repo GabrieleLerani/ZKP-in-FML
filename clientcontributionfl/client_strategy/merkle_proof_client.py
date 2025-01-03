@@ -4,7 +4,7 @@ import os
 from clientcontributionfl.models import train
 from clientcontributionfl.merkle_root_proof import compute_merkle_tree, compute_merkle_proof, format_proof_arguments
 from .fedavg_client import FedAvgClient
-from clientcontributionfl.zokrates_proof import Zokrates
+from clientcontributionfl import ZkSNARK, SmartContractVerifier
 from clientcontributionfl.utils import read_file_as_bytes, generate_zok_merkle_tree_template, write_zok_file
 
 class MerkleProofClient(FedAvgClient):
@@ -17,6 +17,8 @@ class MerkleProofClient(FedAvgClient):
     """
     def __init__(
         self,
+        zk_prover: ZkSNARK,
+        smart_contract: bool,
         *args,
         **kwargs
     ) -> None:
@@ -24,8 +26,8 @@ class MerkleProofClient(FedAvgClient):
         
         #self.merkle_tree = compute_merkle_tree(self.trainloader) 
         self.path_proof_dir = os.path.join("proofs", f"client_{self.node_id}")
-        self.zk = Zokrates(working_dir=self.path_proof_dir)
-
+        self.zk_prover = zk_prover
+        self.use_smart_contract = smart_contract
 
     def _pick_random_batch(self):
         
@@ -53,8 +55,8 @@ class MerkleProofClient(FedAvgClient):
         
         arguments = format_proof_arguments(merkle_tree, path, direction_selector, leaf)
         
-        self.zk.setup(zok_file_path=f"../../{program_path}")
-        self.zk.generate_proof(arguments)
+        self.zk_prover.setup(zok_file_path=f"../../{program_path}")
+        self.zk_prover.generate_proof(arguments)
 
         proof_bytes = read_file_as_bytes(os.path.join(self.path_proof_dir, "proof.json"))
         verification_bytes = read_file_as_bytes(os.path.join(self.path_proof_dir, "verification.key"))
@@ -94,7 +96,11 @@ class MerkleProofClient(FedAvgClient):
 
             params["proof"] = proof_bytes
             params["verification_key"] = verification_bytes
-        
+            if self.use_smart_contract and isinstance(self.zk_prover, SmartContractVerifier):
+                contract_address, abi = self.zk_prover.generate_smart_contract(self.partition_id)
+                params["contract_address"] = str(contract_address)
+                params["abi"] = str(abi).replace("'",'"') # Convert to flower formats
+
         # train the model in any other rounds
         else:
             # learning rate decay

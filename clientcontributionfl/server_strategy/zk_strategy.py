@@ -16,11 +16,13 @@ from flwr.server.client_proxy import ClientProxy
 from typing import List, Tuple, Union, Optional, Dict
 from logging import INFO
 from pprint import PrettyPrinter
-from clientcontributionfl import Zokrates
-from clientcontributionfl.utils import extract_score_from_proof, aggregate
+from clientcontributionfl import Zokrates, ZkSNARK, SmartContractVerifier
+from clientcontributionfl.utils import extract_score_from_proof, aggregate, ClientData
 from collections import defaultdict
 
 import os
+
+
 
 class ZkAvg(FedAvg):
     """
@@ -36,70 +38,95 @@ class ZkAvg(FedAvg):
         discarding_threshold (float): A threshold below which clients are considered to have poor contributions and are filtered out.
     """
 
-    def __init__(self, selection_thr: Optional[float] = None, *args, **kwargs):
+    def __init__(
+            self, 
+            zk_prover: ZkSNARK,
+            selection_thr: Optional[float] = None, 
+            verify_with_smart_contract : bool = False, 
+            *args, 
+            **kwargs
+        ):
         super().__init__(*args, **kwargs)
-        self.client_data = defaultdict(lambda: ["", 1, False])
-        self.zk: Zokrates = Zokrates()
-        self.discarding_threshold = selection_thr  
+        
+        self.zk_prover = zk_prover
+        self.discarding_threshold = selection_thr
+        
+        self.verify_with_smart_contract = verify_with_smart_contract
+        self.client_data: Dict[str, ClientData] = defaultdict(ClientData)
+
+        
 
     def _aggregate_score(self, results: list[tuple[ClientProxy, FitRes]]):
         fit_metrics = [(c.cid, res.metrics) for c, res in results]
-        self._aggregate_verification_keys_and_scores(fit_metrics)
+        
+        self._aggregate_client_data(fit_metrics)
         self._check_proof()
         self._normalize_scores()
-        PrettyPrinter(indent=4).pprint(self.client_data)
+        for client_id, client_info in self.client_data.items():
+            PrettyPrinter(indent=4).pprint({client_id: {"proof_valid": client_info.proof_valid, "contribution_score": client_info.contribution_score}})
+        
 
     def _normalize_scores(self):
         """
         Normalize the scores so they sum up to 1.
         Returns a dictionary with the same keys but normalized values.
         """
-        total = sum(self.client_data[k][1] for k in self.client_data)
-        # edge cases
+
+        total = sum(info.contribution_score for info in self.client_data.values())
+        
         if total == 0:
             equal_weight = 1.0 / len(self.client_data)
-            self.client_data = {
-                key: [value[0], equal_weight]
-                for key, value in self.client_data.items()
-            }
+            for info in self.client_data.values():
+                info.contribution_score = equal_weight
         else:
-            # normalize each score w.r.t to the total
-            self.client_data = {
-                key: [value[0], value[1] / total, value[2]] 
-                for key, value in self.client_data.items()
-            }
-        
+            for info in self.client_data.values():
+                info.contribution_score = info.contribution_score / total
+
     def _create_set_of_clients_with_valid_proofs(self):
         """Pre process the set of valid clients in order to improve look up time during training."""
-        self.valid_clients = {cid for cid, data in self.client_data.items() if data[2]}
+        self.valid_clients = {cid for cid, data in self.client_data.items() if data.proof_valid}
 
     def _is_client_valid(self, cid: str):
         return cid in self.valid_clients
 
-    def _aggregate_verification_keys_and_scores(self, fit_metrics: List[Tuple[str, Dict[str, Scalar]]]):
-        """Aggregates verification keys and scores."""
-        
+    def _aggregate_client_data(self, fit_metrics: List[Tuple[str, Dict[str, Scalar]]]):
         for client_id, metrics in fit_metrics:
-            for _, verification_key_path in metrics.items():
-                self.client_data[client_id][0] = verification_key_path # path of the verification key
-                self.client_data[client_id][1] = extract_score_from_proof(os.path.join(verification_key_path, "proof.json"))
+            
+            
+            client_info = self.client_data[client_id]
+            client_info.client_files_path = metrics["client_data_path"]
+            client_info.contribution_score = extract_score_from_proof(
+                os.path.join(client_info.client_files_path, "proof.json")
+            )
+
+            if self.verify_with_smart_contract:
+                client_info.contract_address = metrics["contract_address"]
+                client_info.abi = metrics["abi"]
         
-        log(INFO,"Verification keys and score aggregated")
+        log(INFO,"Client data aggregated.")
+
 
     def _check_proof(self):
         """
         Check zero-knowledge proof of clients. If verification fails, the corresponding client
         is removed from the client data, ensuring they are not selected for future training rounds.
         """
-        for k in self.client_data:
-            # extract the verification key path
-            vrk_key_path = self.client_data[k][0]
+        for cid in self.client_data:
+            if self.verify_with_smart_contract and isinstance(self.zk_prover, SmartContractVerifier):
+                
+                response = self.zk_prover.verify_proof_with_smart_contract(self.client_data[cid])
+                
+                self.client_data[cid].proof_valid = response
+                
+            else: 
+                # extract the verification key path
+                vrk_key_path = self.client_data[cid].client_files_path
 
-            # verify the proof is correct
-            res = self.zk.verify_proof(vrk_key_path)
+                # verify the proof is correct
+                res = self.zk_prover.verify_proof(vrk_key_path)
 
-            if "PASSED" in res:                
-                self.client_data[k][2] = True 
+                if "PASSED" in res:                
+                    self.client_data[cid].proof_valid = True 
 
     def _filter_clients(self, clients: List[ClientProxy]) -> List[ClientProxy]:
         """Filter clients based on their contribution score."""

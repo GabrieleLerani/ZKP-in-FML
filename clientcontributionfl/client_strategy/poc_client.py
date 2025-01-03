@@ -34,11 +34,8 @@ class PoCZkClient(ZkClient):
                 thr=self.thr
             )
             self.compute_zkp_contribution(score)
-            params[f"vrfkey_{self.node_id}"] = self.path_proof_dir
-            
-            # add additional value
-            if self.dishonest: 
-                forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), self.dishonest_value)
+            self.forge_score()
+            self.set_client_params(params)
             
 
         elif state == SelectionPhase.STORE_LOSSES:

@@ -16,7 +16,9 @@ dependencies = [
     "torchmetrics",
     "torchvision==0.19.1",
     "matplotlib==3.9.2",
-    "scikit-learn"
+    "scikit-learn",
+    "web3",
+    "py-solc-x"
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -56,7 +58,7 @@ dishonest_value = 1000000000 # fake value dishonest clients send to server
 
 # path to zok file to compute contribution
 zok_contribution_file_path = "clientcontributionfl/client_strategy"
-
+smart_contract = true # if true deploy smart contract for on chain proof verification
 
 # value for power of choice strategy
 d = 5 # size of the candidate set between max(CK, 1) <= d <= K

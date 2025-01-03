@@ -7,6 +7,7 @@ from clientcontributionfl import load_data, compute_partition_counts
 from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient, PoCZkClient, PoCClient, MerkleProofClient
 from clientcontributionfl.utils import get_model_class
 import clientcontributionfl.models as models
+from clientcontributionfl import Zokrates
 
 def create_client(strategy: str, **kwargs) -> Client:
     client_classes = {
@@ -51,7 +52,14 @@ def client_fn(context: Context) -> Client:
         "model_class": model_class,   
     }
 
-    if config["strategy"] in ["FedAvg", "PoC", "MPAvg"]:
+    if config["strategy"] in ["FedAvg", "PoC"]:
+        return create_client(config["strategy"], **common_args)
+
+    elif config["strategy"] == "MPAvg":
+        common_args.update({
+            "smart_contract": config["smart_contract"],
+        })
+
         return create_client(config["strategy"], **common_args)
 
     elif config["strategy"] in ["ZkAvg", "PoCZk"]:
@@ -68,7 +76,8 @@ def client_fn(context: Context) -> Client:
         common_args.update({
             "partition_label_counts": partition_counts,
             "dishonest": partition_id >= iid_clients if dishonest else False,
-            "zok_file_path": f"../../{config["zok_contribution_file_path"]}/contribution.zok"
+            "zk_program_file": f"../../{config["zok_contribution_file_path"]}/contribution.zok",
+            "zk_prover": Zokrates(working_dir=f"proofs/client_{node_id}")
         })
         
         return create_client(config["strategy"], **common_args)

@@ -9,13 +9,13 @@ for dataset in "${datasets[@]}"; do
   for iid_ratio in "${iid_ratios[@]}"; do
 
     if [[ $iid_ratio == 0.3 || $iid_ratio == 0.5 ]]; then
-      d_value=3
+      d_value=2
     else
       d_value=5
     fi
 
     # Set the base command
-    cmd="python main.py --strategies PoCZk,ZkAvg,ContAvg,FedAvg,CLAvg --num_rounds 100 --num_nodes $num_nodes --dataset $dataset --iid_ratio $iid_ratio --balanced --x 2 --d $d_value"
+    cmd="python main.py --strategies PoCZk,ZkAvg,ContAvg,FedAvg --num_rounds 1 --num_nodes $num_nodes --dataset $dataset --iid_ratio $iid_ratio --balanced --x 2 --d $d_value"
 
     # Append additional arguments for datasets other than CIFAR10
     if [[ $dataset == "CIFAR10" ]]; then

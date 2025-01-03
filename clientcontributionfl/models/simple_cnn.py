@@ -84,7 +84,7 @@ def train(
             # Metrics
             epoch_loss += loss.item()
             accuracy_metric.update(outputs, labels)
-            del loss, outputs # TODO test if memory constumption is redyced
+            del loss, outputs 
 
         epoch_loss /= len(trainloader)
         epoch_acc = accuracy_metric.compute()

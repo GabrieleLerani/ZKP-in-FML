@@ -1,27 +1,22 @@
-
-import flwr as fl
 from flwr.server.strategy import FedAvg
 from flwr.common import (
-    EvaluateIns,
-    FitIns,
     FitRes,
     Parameters,
     Scalar,
     ndarrays_to_parameters,
     parameters_to_ndarrays,
 )
-from flwr.common.logger import log
-from flwr.server.client_manager import ClientManager
+
+
 from flwr.server.client_proxy import ClientProxy
 
-from typing import List, Tuple, Union, Optional, Dict
-from logging import INFO
-from pprint import PrettyPrinter
+from typing import Union, Optional, Dict
+
 
 from collections import defaultdict
-from clientcontributionfl.utils import aggregate
+from clientcontributionfl.utils import aggregate, ClientData
 from clientcontributionfl.utils.file_utils import write_bytes_to_file
-from clientcontributionfl import Zokrates
+from clientcontributionfl import Zokrates, ZkSNARK
 import os
 
 
@@ -34,18 +29,18 @@ class MerkleProofAvg(FedAvg):
     """
 
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, zk_prover: ZkSNARK, verify_with_smart_contract : bool = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.client_proofs = defaultdict(lambda: False) 
-        self.zk: Zokrates = Zokrates()
-        
+        self.zk_prover = zk_prover
+        self.verify_with_smart_contract = verify_with_smart_contract
+        self.client_data: Dict[str, ClientData] = defaultdict(ClientData)
 
     def _validate_merkle_proofs(self, results: list[tuple[ClientProxy, FitRes]]):
         for c, res in results:
             metrics = res.metrics
             proof_bytes = metrics["proof"]
             verification_key_bytes = metrics["verification_key"]
-
+            
             client_proof_info_path = os.path.join("proofs", f"server_{c.cid}")
             
             os.makedirs(client_proof_info_path, exist_ok=True)
@@ -56,12 +51,20 @@ class MerkleProofAvg(FedAvg):
             write_bytes_to_file(verification_key_path, verification_key_bytes)
             write_bytes_to_file(proof_path, proof_bytes)
             
-            res = self.zk.verify_proof(client_proof_info_path)
-            res = "PASSED" in res
-            self.client_proofs[c.cid] = res
-            log(INFO, f"Proof {c.cid}: {res}")    
-        
+            
+            if self.verify_with_smart_contract:
+                client_info = self.client_data[c.cid]
+                client_info.client_files_path = client_proof_info_path
+                client_info.contract_address = metrics["contract_address"]
+                client_info.abi = metrics["abi"]
+                response = self.zk_prover.verify_proof_with_smart_contract(client_info)
+                client_info.proof_valid = response
+ 
+            else:
+                res = self.zk_prover.verify_proof(client_proof_info_path)
+                self.client_data[c.cid].proof_valid = "PASSED" in res
 
+        
     def aggregate_fit(
         self,
         server_round: int,

@@ -16,8 +16,11 @@ from clientcontributionfl.models import train, test
 
 # relative imports
 from clientcontributionfl.utils import compute_score, forge_score_in_proof
-from clientcontributionfl import Zokrates
+from clientcontributionfl import Zokrates, ZkSNARK
 from clientcontributionfl.utils import measure_cpu_and_time
+
+
+
 
 class ZkClient(NumPyClient):
     """Define a Flower Client that utilizes Zero-Knowledge Proofs (ZKP) for secure federated learning.
@@ -52,7 +55,8 @@ class ZkClient(NumPyClient):
         num_classes: int,
         dishonest: bool,
         model_class: nn.Module,
-        zok_file_path: str,
+        zk_program_file: str,
+        zk_prover: ZkSNARK,
         config: Dict[str, Scalar]
     ) -> None:
         """
@@ -71,11 +75,13 @@ class ZkClient(NumPyClient):
         super().__init__()
 
         self.node_id = node_id
-        self.partition_id = partition_id
+        self.partition_id = int(partition_id)
         self.partition_label_counts = partition_label_counts
     
         self.dishonest = dishonest
         self.dishonest_value = config["dishonest_value"]
+
+        self.use_smart_contract = config["smart_contract"]
 
         # Zero-Knowledge Proof parameters
         self.scale = config["scale"]
@@ -93,11 +99,12 @@ class ZkClient(NumPyClient):
         self.accuracy_metric = Accuracy(task="multiclass", num_classes=num_classes).to(self.config['device'])
         
         # Set up the path for storing ZKP proofs
-        self.path_proof_dir = os.path.join("proofs", f"client_{self.node_id}")
-        self.zok_file_path=zok_file_path
-        self.zk = Zokrates(
-            working_dir=self.path_proof_dir
-        ) 
+        self.client_data_path = os.path.join("proofs", f"client_{self.node_id}")
+        self.zk_program_file = zk_program_file
+        self.zk_prover = zk_prover
+        # self.zk_prover = Zokrates(
+        #     working_dir=self.client_data_path
+        # ) 
 
 
     def compute_zkp_contribution(self, score):
@@ -110,8 +117,8 @@ class ZkClient(NumPyClient):
         mean_val = int(sum(counts) / len(counts))
         
         # Setup and generate the zero-knowledge proof
-        self.zk.setup(zok_file_path=self.zok_file_path)
-
+        self.zk_prover.setup(zok_file_path=self.zk_program_file)
+        
         # format arguments to match generate_proof params.
         counts = " ".join(map(str, counts))
         arguments = (
@@ -123,7 +130,8 @@ class ZkClient(NumPyClient):
             score
         )
 
-        self.zk.generate_proof(arguments)
+        self.zk_prover.generate_proof(arguments)
+        
 
     def set_parameters(self, parameters):
         """Receive parameters and apply them to the local model.
@@ -169,11 +177,9 @@ class ZkClient(NumPyClient):
                 thr=self.thr
             )
             self.compute_zkp_contribution(score)
-            params["vrfkey"] = self.path_proof_dir
+            self.forge_score()
+            self.set_client_params(params)
             
-            # directly create a fake score in the proof.json file to simulate malicious client
-            if self.dishonest: 
-                forge_score_in_proof(os.path.join(self.path_proof_dir, "proof.json"), self.dishonest_value)
 
         else:
             # Train the model in subsequent rounds
@@ -189,6 +195,20 @@ class ZkClient(NumPyClient):
             )
 
         return self.get_parameters({}), len(self.trainloader), params
+
+    def forge_score(self):
+        # directly create a fake score in the proof.json file to simulate malicious client
+        if self.dishonest: 
+            forge_score_in_proof(os.path.join(self.client_data_path, "proof.json"), self.dishonest_value)
+
+    def set_client_params(self, params):
+        if self.use_smart_contract:
+            contract_address, abi = self.zk_prover.generate_smart_contract(self.partition_id)
+                
+            params["contract_address"] = str(contract_address)
+            params["abi"] = str(abi).replace("'",'"') # Convert to flower formats
+                
+        params["client_data_path"] = self.client_data_path
 
     def evaluate(self, parameters: NDArrays, config: Dict[str, Scalar]):
         """Evaluate the model on the client's test data.

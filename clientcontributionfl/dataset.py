@@ -18,7 +18,7 @@ from collections import Counter
 from typing import Dict
 
 
-# TODO consider to make all the code into a class to improve readability
+
 fds = None # cache FederatedDataset
 node_dataloader = {} # cache node partitions
 partition_class_counts = {} # cache number of partitions

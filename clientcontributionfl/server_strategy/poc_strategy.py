@@ -15,7 +15,7 @@ from flwr.server.strategy import FedAvg
 from pprint import PrettyPrinter
 from flwr.common.logger import log
 from logging import INFO, WARNING
-
+from clientcontributionfl import ZkSNARK
 from typing import List, Tuple, Union, Optional, Dict, Callable
 
 import numpy as np
@@ -33,12 +33,14 @@ class PoCZk(ZkAvg):
     """
 
     def __init__(
-        self, d: float, 
+        self, 
+        zk_prover: ZkSNARK,
+        d: float, 
         on_fit_config_fn: Optional[Callable[[int, str], dict[str, Scalar]]], 
         *args, 
         **kwargs
     ):
-        super().__init__(d, *args, **kwargs)
+        super().__init__(zk_prover, *args, **kwargs)
         self.d = d # size of candidate set m <= d <= K
         self.m = 1 # number of clients equal to max(CK, 1)
         self.candidate_set : List[ClientProxy] = []
@@ -199,8 +201,8 @@ class PoCZk(ZkAvg):
         filtered_clients = []
         total = 0.0
         for c in clients:
-            score = self.client_data[c.cid][1]
-            proof_is_valid = self.client_data[c.cid][2]
+            score = self.client_data[c.cid].contribution_score
+            proof_is_valid = self.client_data[c.cid].proof_valid
             
             if proof_is_valid:
                 filtered_clients.append(c)
@@ -219,9 +221,9 @@ class PoCZk(ZkAvg):
             
             # probabilities already normalized
             if len(self.filtered_clients) == len(self.client_data):
-                self.filtered_probabilities = [self.client_data[client.cid][1] for client in self.filtered_clients]    
+                self.filtered_probabilities = [self.client_data[client.cid].contribution_score for client in self.filtered_clients]    
             else:
-                self.filtered_probabilities = [self.client_data[client.cid][1] / total for client in self.filtered_clients]
+                self.filtered_probabilities = [self.client_data[client.cid].contribution_score / total for client in self.filtered_clients]
             
         
         sampled_clients = np.random.choice(self.filtered_clients, p=self.filtered_probabilities, size=d, replace=False)
