@@ -114,7 +114,7 @@ class ZkAvg(FedAvg):
         for cid in self.client_data:
             if self.verify_with_smart_contract and isinstance(self.zk_prover, SmartContractVerifier):
                 
-                response = self.zk_prover.verify_proof_with_smart_contract(self.client_data[cid])
+                response = self.zk_prover.verify_proof_with_smart_contract(client_data=self.client_data[cid])
                 
                 self.client_data[cid].proof_valid = response
                 

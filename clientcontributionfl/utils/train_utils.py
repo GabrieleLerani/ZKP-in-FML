@@ -391,13 +391,13 @@ def measure_cpu_and_time(csv_file="client_metrics.csv"):
             time_taken_us = (end_time - start_time) * 1_000_000  # Convert to microseconds
             avg_cpu_utilization = (start_cpu + end_cpu) / 2  # Approximation
             
-            # Log the results to the CSV file
+            
             with open(csv_file, mode="a", newline="") as file:
                 writer = csv.writer(file)
                 # Write header if the file is new
                 if csv_path.stat().st_size == 0:
                     writer.writerow(["Execution Time (µs)", "Avg CPU Utilization (%)"])
-                # Write data
+                
                 writer.writerow([f"{time_taken_us:.0f}", f"{avg_cpu_utilization:.2f}"])
             
             print(f"Function '{func.__name__}' executed in {time_taken_us:.0f} µs")
@@ -410,7 +410,25 @@ def measure_cpu_and_time(csv_file="client_metrics.csv"):
 
 
 
-def measure_memory_usage():
-    process = psutil.Process()
-    memory_info = process.memory_info()
-    return memory_info.rss / 1e6  
+def store_deployment_metrics(actor_id: int, cost_wei: int, execution_time: float):
+
+    filepath = Path("deployment_metrics.csv")
+    file_exists = filepath.exists()
+    
+    with open(filepath, 'a', newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['actor_id', 'cost_wei', 'execution_time'])
+        writer.writerow([actor_id, cost_wei, execution_time])
+
+    
+def store_contract_function_metrics(cost_wei: int, execution_time: float):
+
+    filepath = Path("contract_function_metrics.csv")
+    file_exists = filepath.exists()
+    
+    with open(filepath, 'a', newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['cost_wei', 'execution_time'])
+        writer.writerow([cost_wei, execution_time])

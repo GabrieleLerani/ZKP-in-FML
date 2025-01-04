@@ -16,7 +16,7 @@ from clientcontributionfl.models import train, test
 
 # relative imports
 from clientcontributionfl.utils import compute_score, forge_score_in_proof
-from clientcontributionfl import Zokrates, ZkSNARK
+from clientcontributionfl import ZkSNARK, SmartContractVerifier
 from clientcontributionfl.utils import measure_cpu_and_time
 
 
@@ -102,9 +102,7 @@ class ZkClient(NumPyClient):
         self.client_data_path = os.path.join("proofs", f"client_{self.node_id}")
         self.zk_program_file = zk_program_file
         self.zk_prover = zk_prover
-        # self.zk_prover = Zokrates(
-        #     working_dir=self.client_data_path
-        # ) 
+        
 
 
     def compute_zkp_contribution(self, score):
@@ -119,7 +117,7 @@ class ZkClient(NumPyClient):
         # Setup and generate the zero-knowledge proof
         self.zk_prover.setup(zok_file_path=self.zk_program_file)
         
-        # format arguments to match generate_proof params.
+        # Format arguments to match generate_proof params.
         counts = " ".join(map(str, counts))
         arguments = (
             counts, 
@@ -202,8 +200,8 @@ class ZkClient(NumPyClient):
             forge_score_in_proof(os.path.join(self.client_data_path, "proof.json"), self.dishonest_value)
 
     def set_client_params(self, params):
-        if self.use_smart_contract:
-            contract_address, abi = self.zk_prover.generate_smart_contract(self.partition_id)
+        if self.use_smart_contract and isinstance(self.zk_prover, SmartContractVerifier):
+            contract_address, abi = self.zk_prover.generate_smart_contract(node_id=self.partition_id)
                 
             params["contract_address"] = str(contract_address)
             params["abi"] = str(abi).replace("'",'"') # Convert to flower formats

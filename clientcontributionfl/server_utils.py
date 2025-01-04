@@ -129,6 +129,7 @@ def get_strategy(
     elif cfg['strategy'] == 'MPAvg':
         common_args["fraction_fit"] = 1.0
         common_args['verify_with_smart_contract'] = cfg['smart_contract']
+        common_args['zk_prover'] = Zokrates()
         strategy_class = MerkleProofAvg
 
     elif cfg['strategy'] == 'ContAvg':

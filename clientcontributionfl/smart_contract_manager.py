@@ -1,8 +1,10 @@
 import solcx
+import time
 from solcx import compile_source
 from web3 import Web3
 from flwr.common.logger import log
 from logging import INFO
+from clientcontributionfl.utils import store_deployment_metrics, store_contract_function_metrics
 
 SOLIDITY_VERSION = '0.8.0'
 
@@ -45,12 +47,14 @@ class SmartContractManager:
             "from": self.w3.eth.accounts[actor_id + 1] # account 0 is of the server
         }
 
+        start_time = time.time()
         tx_hash = Contract.constructor().transact(transaction)
         tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        if tx_receipt.status != 1:
-            raise Exception("Contract deployment failed")
-
+        execution_time = time.time() - start_time
+                
+        transaction_cost = self.calculate_transaction_cost(tx_receipt)
+        store_deployment_metrics(actor_id, transaction_cost, execution_time)
+        
         log(INFO, f"Account {actor_id + 1} deployed a contract at: {tx_receipt.contractAddress}")
 
         return tx_receipt.contractAddress
@@ -70,7 +74,30 @@ class SmartContractManager:
         contract_function = getattr(contract.functions, function_name)
         
         response = contract_function(*args).call()
-        
         return response
 
+        # transaction = {
+        #     "from": self.w3.eth.accounts[0] # account 0 is of the server
+        # }
+
+        # start_time = time.time()
+        # response = contract_function(*args).transact(transaction)
+        # tx_receipt = self.w3.eth.wait_for_transaction_receipt(response)
+        # execution_time = time.time() - start_time
+
+        # transaction_cost = self.calculate_transaction_cost(tx_receipt)
+        # store_contract_function_metrics(transaction_cost, execution_time)
+
+        # return tx_receipt.status == 1
+
+        
+
+    def calculate_transaction_cost(self, tx_receipt):
+        """
+        Calculate the total cost of a transaction in both wei and ether
+        """
+        gas_price = self.w3.eth.gas_price
+        total_cost_wei = tx_receipt.gasUsed * gas_price
+        #total_cost_ether = self.w3.from_wei(total_cost_wei, 'ether')
+        return total_cost_wei
 

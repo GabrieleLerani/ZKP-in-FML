@@ -58,6 +58,7 @@ def client_fn(context: Context) -> Client:
     elif config["strategy"] == "MPAvg":
         common_args.update({
             "smart_contract": config["smart_contract"],
+            "zk_prover": Zokrates(working_dir=f"proofs/client_{node_id}")
         })
 
         return create_client(config["strategy"], **common_args)
