@@ -52,7 +52,7 @@ class NetCifar10(nn.Module):
         x = F.relu(self.fc2(x))
         return self.fc3(x)
 
-# TODO Maybe move this into Model so to avoid passing parameters
+
 def train(
         net: nn.Module, 
         trainloader: DataLoader, 

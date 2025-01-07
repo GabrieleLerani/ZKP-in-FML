@@ -19,7 +19,6 @@ def generate_file_suffix(params: dict) -> str:
 
     num_rounds = params["num_rounds"]
     partitioner = params["partitioner"]
-    #dataset = params["dataset_name"]
     secaggplus = params.get("secaggplus", False)
     alpha = params.get("alpha", None)
     x_non_iid = params.get("x_non_iid", None)

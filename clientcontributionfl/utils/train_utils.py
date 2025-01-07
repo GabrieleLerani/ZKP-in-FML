@@ -18,7 +18,7 @@ from functools import wraps
 from pathlib import Path
 from dataclasses import dataclass
 
-# TODO move into another place and change all the classes using self.client_data
+
 @dataclass
 class ClientData:
     client_files_path: str = ""
