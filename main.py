@@ -1,13 +1,12 @@
 import subprocess
 import argparse
-from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files, check_arguments, plot_accuracy_for_different_x
+from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files, check_arguments, save_target_accuracy_to_csv
 from flwr.common.config import get_project_config
 from pathlib import Path
 
 
 def main():
-    
-    
+
     parser = argparse.ArgumentParser(description="Run federated learning simulations.")
     
     try:
@@ -64,9 +63,9 @@ def add_parser_arguments(parser : argparse.ArgumentParser):
 def run_simulations(args):
     """Run simulation for each strategy."""
     strategies = args.strategies
-    for strategy in strategies:
-        cleanup_proofs()
-        run_simulation(args, strategy)
+    # for strategy in strategies:
+    #     cleanup_proofs()
+    #     run_simulation(args, strategy)
 
 def run_simulation(args, strategy):
 
@@ -117,6 +116,12 @@ def update_configuration(args):
 
 def save_simulation_results(strategies, config):
     """Save simulation results."""
+    #comparison_path = save_comparison(strategies, config)
+    max_acc_path = save_training_rounds(strategies, config)
+    # TODO generalize to return comparison_path
+    return max_acc_path
+
+def save_comparison(strategies, config):
     dataset = config["dataset_name"]
     dishonest = "dishonest" if config["dishonest"] else "honest"
     results_path = Path(config["save_path"]) / Path("simulation") / Path(dataset) / Path(dishonest) 
@@ -128,9 +133,22 @@ def save_simulation_results(strategies, config):
         strategies=strategies
     )
     return simulation_path
+
+def save_training_rounds(strategies, config):
+    dataset = config["dataset_name"]
+    dishonest = "dishonest" if config["dishonest"] else "honest"
+    results_path = Path(config["save_path"]) / Path("simulation") / Path(dataset) / Path(dishonest) 
+
+    training_rounds_paths = save_target_accuracy_to_csv(
+        save_csv_path=results_path,
+        config=config,
+        strategies=strategies
+    )
+    return training_rounds_paths
     
 
 if __name__ == "__main__":
     main()
+
     # results_path = Path("results/simulation/PoC_worst_case")
     # plot_accuracy_for_different_x(results_path, "history_S=PoC") 

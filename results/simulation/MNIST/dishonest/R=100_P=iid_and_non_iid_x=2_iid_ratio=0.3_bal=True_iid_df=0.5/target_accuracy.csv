@@ -1,0 +1,5 @@
+Algorithm,Dataset: MNIST (target: 0.98)
+PoCZk,6
+ZkAvg,18
+ContAvg,0
+FedAvg,28

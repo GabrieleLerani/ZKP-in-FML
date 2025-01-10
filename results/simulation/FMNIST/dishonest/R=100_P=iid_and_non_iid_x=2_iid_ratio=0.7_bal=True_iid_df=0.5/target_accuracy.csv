@@ -1,0 +1,5 @@
+Algorithm,Dataset: FMNIST (target: 0.89)
+PoCZk,22
+ZkAvg,24
+ContAvg,0
+FedAvg,38

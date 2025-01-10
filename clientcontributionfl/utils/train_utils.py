@@ -61,35 +61,6 @@ def load_history(file_path: str):
     loaded_array = np.load(file_path, allow_pickle=True).item()
     return loaded_array
 
-def plot_for_varying_alphas(save_plot_path: Path, num_rounds: int, dataset_distribution: str, secaggplus: bool):
-    """
-    Read numpy files for FedAvg strategy with different alpha values and plot their centralized accuracy.
-    """
-    alpha_values = [0.03, 0.1, 0.5, 1.0, 2.0]
-    plt.figure(figsize=(10, 6))
-
-    for alpha in alpha_values:
-        
-        file_suffix = f"_S=FedAvg_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}" + (f"_alpha={alpha}" if dataset_distribution == "dirichlet" else "")
-        file_path = Path(save_plot_path) / f"history{file_suffix}.npy"
-        
-        history = np.load(file_path, allow_pickle=True).item()
-
-        
-        rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
-        plt.plot(np.asarray(rounds_acc), np.asarray(values_acc), label=f"α = {alpha}")
-
-    plt.title(f"Centralized Validation Accuracy - MNIST (FedAvg, {dataset_distribution})")
-    plt.xlabel("Rounds")
-    plt.ylabel("Accuracy")
-    plt.legend(loc="lower right")
-    plt.ylim([0.1, 1])
-
-    plt.tight_layout()
-    plt.savefig(Path(save_plot_path) / Path(f"alpha_comparison_R={num_rounds}_D={dataset_distribution}_SecAgg={'On' if secaggplus else 'Off'}.png"))
-    plt.close()
-
-
 
 def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], strategies: List[str]):
     """
@@ -148,6 +119,53 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     
     plt.savefig(result_path / "comparison.png")
     plt.close()
+    return result_path
+
+def save_target_accuracy_to_csv(save_csv_path: Path, config: dict[str, any], strategies: List[str]):
+    """
+    Save the number of rounds required to reach the target accuracy for each strategy to a CSV file.
+    If the target is not reached, write 0.
+    """
+    dataset = config["dataset_name"]
+    file_suffix = generate_file_suffix(config)
+    result_path = save_csv_path / Path(file_suffix.lstrip('_'))
+    csv_file_path = result_path / "target_accuracy.csv"
+
+    targets = {
+        "MNIST": 0.98,
+        "FMNIST": 0.85,
+        "CIFAR10": 0.45,
+    }
+
+    target_accuracy = targets.get(dataset, None)
+    if target_accuracy is None:
+        raise ValueError(f"No target accuracy defined for dataset {dataset}")
+
+    # Ensure the directory for the CSV file exists
+    if not result_path.exists():
+        result_path.mkdir(parents=True, exist_ok=True)
+
+    with open(csv_file_path, mode="w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        # Write the header
+        writer.writerow(["Algorithm", f"Dataset: {dataset} (target: {target_accuracy})"])
+
+        for strategy in strategies:
+            file_path = result_path / f"history_S={strategy}.npy"
+            history = np.load(file_path, allow_pickle=True).item()
+            rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
+
+            # Find the first round where the target accuracy is reached
+            rounds_to_target = 0
+            for round_num, acc in zip(rounds_acc, values_acc):
+                if acc >= target_accuracy:
+                    rounds_to_target = round_num
+                    break
+
+            # Write the data to the CSV
+            writer.writerow([strategy, rounds_to_target])
+
+    print(f"Target accuracy data saved to {csv_file_path}")
     return result_path
 
 def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):

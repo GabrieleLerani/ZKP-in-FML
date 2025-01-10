@@ -1,0 +1,5 @@
+Algorithm,Dataset: CIFAR10 (target: 0.45)
+PoCZk,8
+ZkAvg,14
+ContAvg,0
+FedAvg,28
