@@ -20,8 +20,8 @@ def main():
     
     config = update_configuration(args)
 
-    simulation_path = save_simulation_results(args.strategies, config)
-    print(f"You can find simulation results at: {simulation_path}")
+    comparison_path, max_accuracy_path = save_simulation_results(args.strategies, config)
+    print(f"You can find simulation results at: {comparison_path} and {max_accuracy_path}")
 
 def list_of_strings(arg):
     return arg.split(',')
@@ -63,9 +63,9 @@ def add_parser_arguments(parser : argparse.ArgumentParser):
 def run_simulations(args):
     """Run simulation for each strategy."""
     strategies = args.strategies
-    # for strategy in strategies:
-    #     cleanup_proofs()
-    #     run_simulation(args, strategy)
+    for strategy in strategies:
+        cleanup_proofs()
+        run_simulation(args, strategy)
 
 def run_simulation(args, strategy):
 
@@ -116,10 +116,10 @@ def update_configuration(args):
 
 def save_simulation_results(strategies, config):
     """Save simulation results."""
-    #comparison_path = save_comparison(strategies, config)
+    comparison_path = save_comparison(strategies, config)
     max_acc_path = save_training_rounds(strategies, config)
-    # TODO generalize to return comparison_path
-    return max_acc_path
+    
+    return comparison_path, max_acc_path
 
 def save_comparison(strategies, config):
     dataset = config["dataset_name"]

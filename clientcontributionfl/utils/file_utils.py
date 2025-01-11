@@ -3,6 +3,8 @@ import os
 import json
 from typing import List, Tuple, Union
 
+VALID_STRATEGIES = {"FedAvg", "FedAvgM", "FedAdam", "ZkAvg", "ContAvg", "CLAvg", "PoC", "PoCZk", "MPAvg"}
+
 def read_file_as_bytes(file_path: str) -> bytes:
     with open(file_path, "rb") as f:
         return f.read()
@@ -155,10 +157,9 @@ def check_arguments(args):
         return False
 
 def _check_strategies(strategies: List[str]):
-    valid_strategies = {"FedAvg", "ZkAvg", "ContAvg", "CLAvg", "PoC", "PoCZk", "MPAvg"}
-    invalid_strategies = [s for s in strategies if s not in valid_strategies]
+    invalid_strategies = [s for s in strategies if s not in VALID_STRATEGIES]
     if invalid_strategies:
-        raise ValueError(f"Invalid strategies: {invalid_strategies}. Valid options are: {valid_strategies}")
+        raise ValueError(f"Invalid strategies: {invalid_strategies}. Valid options are: {VALID_STRATEGIES}")
     return True
 
 def _check_num_clients(clients: int):

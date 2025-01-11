@@ -82,6 +82,18 @@ beta = 1 # the importance to give variance
 thr = 400 # num of minimum label to have positive contribution
 selection_thr = 0.1 # clients with normalized score above 0.1 are selected for training
 
+# Parameters for FedAvgM
+server_momentum = 0.9
+server_learning_rate = 0.0003
+
+# Parameters for FedAdam
+eta = 0.01
+eta_l = 0.03162
+beta_1 = 0.9
+beta_2 = 0.99
+tau = 0.001
+
+
 [tool.flwr.federations]
 default = "local-simulation"
 

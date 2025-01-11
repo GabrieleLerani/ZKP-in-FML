@@ -12,6 +12,8 @@ from clientcontributionfl import Zokrates
 def create_client(strategy: str, **kwargs) -> Client:
     client_classes = {
         "FedAvg": FedAvgClient,
+        "FedAvgM": FedAvgClient,
+        "FedAdam": FedAvgClient,
         "ZkAvg": ZkClient,
         "ContAvg": ContributionClient,
         "CLAvg": ContributionClient,
@@ -52,7 +54,7 @@ def client_fn(context: Context) -> Client:
         "model_class": model_class,   
     }
 
-    if config["strategy"] in ["FedAvg", "PoC"]:
+    if config["strategy"] in ["FedAvg","FedAvgM" ,"FedAdam", "PoC"]:
         return create_client(config["strategy"], **common_args)
 
     elif config["strategy"] == "MPAvg":

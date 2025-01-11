@@ -7,8 +7,9 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from flwr.common import Metrics, Scalar
-from flwr.server.strategy import FedAvg, Strategy
+from flwr.server.strategy import FedAvg, Strategy, FedAvgM, FedAdam
 
+from clientcontributionfl.models import get_model_initial_parameters
 import clientcontributionfl.models as models
 from clientcontributionfl.server_strategy import ZkAvg, ContributionAvg, PoCZk, PoC, MerkleProofAvg, CLAvg
 from clientcontributionfl.utils import get_model_class, generate_zok_client_score_template, write_zok_file
@@ -30,10 +31,8 @@ def get_on_fit_config(cfg: Dict[str, any]):
 
     initial_lr = cfg.get("lr", 0.01)
     decay_per_round = cfg.get("decay_per_round", 0.995)
-    
-    def fit_config_fn(server_round: int):
         
-        """Construct `config` that clients receive when running `fit()`"""
+    def fit_config_fn(server_round: int):
         
         lr = initial_lr * (decay_per_round ** server_round) if server_round > 1 else initial_lr
         
@@ -44,8 +43,7 @@ def get_on_fit_config(cfg: Dict[str, any]):
     
     def fit_config_fn_poc(server_round: int, state: str):
         
-        """Construct `config` that clients receive when running `fit()`"""
-        
+    
         lr = initial_lr * (decay_per_round ** server_round) if server_round > 1 else initial_lr
         
         return {
@@ -54,8 +52,17 @@ def get_on_fit_config(cfg: Dict[str, any]):
             "state": state
         }
     
+    def fit_config_fn_fedavgm(server_round: int):
+        
+        return {
+            "server_round": server_round,
+            "lr": initial_lr
+        }
+    
     if "PoC" in cfg.get("strategy"):
         return fit_config_fn_poc
+    elif "FedAvgm" in cfg.get("strategy"):
+        return fit_config_fn_fedavgm
 
     return fit_config_fn
 
@@ -125,6 +132,29 @@ def get_strategy(
 
     if cfg['strategy'] == 'FedAvg':
         strategy_class = FedAvg
+    
+    elif cfg['strategy'] == 'FedAvgM':
+        model_class = get_model_class(models,cfg["dataset_name"])
+        model = model_class(num_classes)
+        
+        common_args["server_momentum"] = cfg["server_momentum"]
+        common_args["server_learning_rate"] = cfg["server_learning_rate"]
+        common_args["initial_parameters"] = get_model_initial_parameters(model)
+        strategy_class = FedAvgM
+
+    elif cfg['strategy'] == 'FedAdam':
+        model_class = get_model_class(models,cfg["dataset_name"])
+        model = model_class(num_classes)
+
+        common_args["eta"] = cfg["eta"]
+        common_args["eta_l"] = cfg["eta_l"]
+        common_args["beta_1"] = cfg["beta_1"]
+        common_args["beta_2"] = cfg["beta_2"]
+        common_args["tau"] = cfg["tau"]
+
+        common_args["initial_parameters"] = get_model_initial_parameters(model)
+        strategy_class = FedAdam
+
     
     elif cfg['strategy'] == 'MPAvg':
         common_args["fraction_fit"] = 1.0

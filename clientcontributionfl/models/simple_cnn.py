@@ -5,6 +5,9 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 from flwr.common.logger import log
+from flwr.common.parameter import ndarrays_to_parameters
+from flwr.common import Parameters
+
 from logging import INFO, DEBUG
 import random
 
@@ -158,3 +161,8 @@ def sample_random_batch(dataloader: DataLoader):
             break
     
     return sampled_batch
+
+def get_model_initial_parameters(model: nn.Module) -> Parameters:
+    weights = [val.cpu().numpy() for _, val in model.state_dict().items()]
+    parameters = ndarrays_to_parameters(weights)
+    return parameters
