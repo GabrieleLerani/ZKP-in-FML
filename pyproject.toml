@@ -84,7 +84,8 @@ selection_thr = 0.1 # clients with normalized score above 0.1 are selected for t
 
 # Parameters for FedAvgM
 server_momentum = 0.9
-server_learning_rate = 0.0003
+server_learning_rate = 0.05
+
 
 # Parameters for FedAdam
 eta = 0.01

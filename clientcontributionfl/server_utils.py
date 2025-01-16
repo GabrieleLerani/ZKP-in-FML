@@ -54,6 +54,8 @@ def get_on_fit_config(cfg: Dict[str, any]):
     
     def fit_config_fn_fedavgm(server_round: int):
         
+        initial_lr = cfg["server_learning_rate"]
+
         return {
             "server_round": server_round,
             "lr": initial_lr

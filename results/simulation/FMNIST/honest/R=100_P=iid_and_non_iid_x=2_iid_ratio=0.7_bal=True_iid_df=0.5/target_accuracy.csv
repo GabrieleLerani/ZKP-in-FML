@@ -3,3 +3,5 @@ PoCZk,6
 ZkAvg,10
 ContAvg,8
 FedAvg,8
+FedAdam,12
+FedAvgM,0
