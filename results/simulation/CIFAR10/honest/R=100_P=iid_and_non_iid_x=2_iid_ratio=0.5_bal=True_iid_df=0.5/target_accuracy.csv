@@ -5,3 +5,4 @@ ContAvg,12
 FedAvg,28
 FedAdam,0
 FedAvgM,58
+FedProx,16

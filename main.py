@@ -63,9 +63,9 @@ def add_parser_arguments(parser : argparse.ArgumentParser):
 def run_simulations(args):
     """Run simulation for each strategy."""
     strategies = args.strategies
-    # for strategy in strategies:
-    #     cleanup_proofs()
-    #     run_simulation(args, strategy)
+    for strategy in strategies:
+        cleanup_proofs()
+        run_simulation(args, strategy)
 
 def run_simulation(args, strategy):
 

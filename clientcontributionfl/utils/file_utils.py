@@ -3,7 +3,7 @@ import os
 import json
 from typing import List, Tuple, Union
 
-VALID_STRATEGIES = {"FedAvg", "FedAvgM", "FedAdam", "ZkAvg", "ContAvg", "CLAvg", "PoC", "PoCZk", "MPAvg"}
+VALID_STRATEGIES = {"FedAvg", "FedProx", "FedAvgM", "FedAdam", "ZkAvg", "ContAvg", "CLAvg", "PoC", "PoCZk", "MPAvg"}
 
 def read_file_as_bytes(file_path: str) -> bytes:
     with open(file_path, "rb") as f:

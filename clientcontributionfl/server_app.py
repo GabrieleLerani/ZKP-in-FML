@@ -74,6 +74,7 @@ def create_workflow(params):
     ) if params['secaggplus'] else None
     
     if "PoC" in params['strategy_name']:
+        log(INFO, "PoCWorkflow")
         workflow = PoCWorkflow(fit_workflow=fit_workflow)
     else:
         workflow = DefaultWorkflow(fit_workflow=fit_workflow)

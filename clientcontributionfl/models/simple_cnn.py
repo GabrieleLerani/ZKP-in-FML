@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.parameter import Parameter
+from typing import List, Tuple
 
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
@@ -54,6 +56,89 @@ class NetCifar10(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         return self.fc3(x)
+
+
+
+
+def train_proximal_term(  # pylint: disable=too-many-arguments
+    net: nn.Module,
+    trainloader: DataLoader,
+    device: torch.device,
+    epochs: int,
+    learning_rate: float,
+    proximal_mu: float,
+) -> None:
+    """Train the network on the training set.
+
+    Parameters
+    ----------
+    net : nn.Module
+        The neural network to train.
+    trainloader : DataLoader
+        The DataLoader containing the data to train the network on.
+    device : torch.device
+        The device on which the model should be trained, either 'cpu' or 'cuda'.
+    epochs : int
+        The number of epochs the model should be trained for.
+    learning_rate : float
+        The learning rate for the SGD optimizer.
+    proximal_mu : float
+        Parameter for the weight of the proximal term.
+    """
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, weight_decay=0.001)
+    global_params = [val.detach().clone() for val in net.parameters()]
+    net.train()
+    for _ in range(epochs):
+        net = _train_one_epoch(
+            net, global_params, trainloader, device, criterion, optimizer, proximal_mu
+        )
+
+def _train_one_epoch(  # pylint: disable=too-many-arguments
+    net: nn.Module,
+    global_params: List[Parameter],
+    trainloader: DataLoader,
+    device: torch.device,
+    criterion: torch.nn.CrossEntropyLoss,
+    optimizer: torch.optim.Adam,
+    proximal_mu: float,
+) -> nn.Module:
+    """Train for one epoch.
+
+    Parameters
+    ----------
+    net : nn.Module
+        The neural network to train.
+    global_params : List[Parameter]
+        The parameters of the global model (from the server).
+    trainloader : DataLoader
+        The DataLoader containing the data to train the network on.
+    device : torch.device
+        The device on which the model should be trained, either 'cpu' or 'cuda'.
+    criterion : torch.nn.CrossEntropyLoss
+        The loss function to use for training
+    optimizer : torch.optim.Adam
+        The optimizer to use for training
+    proximal_mu : float
+        Parameter for the weight of the proximal term.
+
+    Returns
+    -------
+    nn.Module
+        The model that has been trained for one epoch.
+    """
+    for batch in trainloader:
+        feature, label = list(batch.keys()) # take the column name of image
+        images, labels = batch[feature], batch[label]
+        images, labels = images.to(device), labels.to(device)
+        optimizer.zero_grad()
+        proximal_term = 0.0
+        for local_weights, global_weights in zip(net.parameters(), global_params):
+            proximal_term += torch.square((local_weights - global_weights).norm(2))
+        loss = criterion(net(images), labels) + (proximal_mu / 2) * proximal_term
+        loss.backward()
+        optimizer.step()
+    return net
 
 
 def train(

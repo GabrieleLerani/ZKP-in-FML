@@ -86,13 +86,15 @@ selection_thr = 0.1 # clients with normalized score above 0.1 are selected for t
 server_momentum = 0.9
 server_learning_rate = 0.05
 
-
 # Parameters for FedAdam
 eta = 0.01
 eta_l = 0.03162
 beta_1 = 0.9
 beta_2 = 0.99
 tau = 0.001
+
+# Param for FedProx
+proximal_mu = 0.01
 
 
 [tool.flwr.federations]

@@ -4,7 +4,7 @@ from flwr.client.mod import secaggplus_mod
 from flwr.common import Context
 from flwr.common.config import get_project_config
 from clientcontributionfl import load_data, compute_partition_counts
-from clientcontributionfl.client_strategy import FedAvgClient, ZkClient, ContributionClient, PoCZkClient, PoCClient, MerkleProofClient
+from clientcontributionfl.client_strategy import FedAvgClient, FedProxClient, ZkClient, ContributionClient, PoCZkClient, PoCClient, MerkleProofClient
 from clientcontributionfl.utils import get_model_class
 import clientcontributionfl.models as models
 from clientcontributionfl import Zokrates
@@ -14,6 +14,7 @@ def create_client(strategy: str, **kwargs) -> Client:
         "FedAvg": FedAvgClient,
         "FedAvgM": FedAvgClient,
         "FedAdam": FedAvgClient,
+        "FedProx": FedProxClient,
         "ZkAvg": ZkClient,
         "ContAvg": ContributionClient,
         "CLAvg": ContributionClient,
@@ -54,7 +55,7 @@ def client_fn(context: Context) -> Client:
         "model_class": model_class,   
     }
 
-    if config["strategy"] in ["FedAvg","FedAvgM" ,"FedAdam", "PoC"]:
+    if config["strategy"] in ["FedAvg","FedAvgM", "FedAdam", "FedProx", "PoC"]:
         return create_client(config["strategy"], **common_args)
 
     elif config["strategy"] == "MPAvg":

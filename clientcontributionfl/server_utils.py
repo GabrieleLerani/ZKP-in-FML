@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
 from flwr.common import Metrics, Scalar
-from flwr.server.strategy import FedAvg, Strategy, FedAvgM, FedAdam
+from flwr.server.strategy import FedAvg, Strategy, FedAvgM, FedAdam, FedProx
 
 from clientcontributionfl.models import get_model_initial_parameters
 import clientcontributionfl.models as models
@@ -52,7 +52,7 @@ def get_on_fit_config(cfg: Dict[str, any]):
             "state": state
         }
     
-    def fit_config_fn_fedavgm(server_round: int):
+    def fit_config_fn_static_lr(server_round: int):
         
         initial_lr = cfg["server_learning_rate"]
 
@@ -61,10 +61,11 @@ def get_on_fit_config(cfg: Dict[str, any]):
             "lr": initial_lr
         }
     
+ 
     if "PoC" in cfg.get("strategy"):
         return fit_config_fn_poc
-    elif "FedAvgm" in cfg.get("strategy"):
-        return fit_config_fn_fedavgm
+    elif "FedAvgM" == cfg.get("strategy") or "FedProx" == cfg.get("strategy"):
+        return fit_config_fn_static_lr
 
     return fit_config_fn
 
@@ -157,7 +158,14 @@ def get_strategy(
         common_args["initial_parameters"] = get_model_initial_parameters(model)
         strategy_class = FedAdam
 
-    
+
+    elif cfg['strategy'] == 'FedProx':
+        model_class = get_model_class(models,cfg["dataset_name"])
+        model = model_class(num_classes)
+        common_args["initial_parameters"] = get_model_initial_parameters(model)
+        common_args['proximal_mu'] = cfg['proximal_mu']
+        strategy_class = FedProx
+
     elif cfg['strategy'] == 'MPAvg':
         common_args["fraction_fit"] = 1.0
         common_args['verify_with_smart_contract'] = cfg['smart_contract']
