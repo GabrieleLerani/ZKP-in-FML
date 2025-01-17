@@ -70,7 +70,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     smoothed_plot = config["smoothed_plots"]
     file_suffix = generate_file_suffix(config)
 
-    _, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 10))
+    _, ax1 = plt.subplots(1, 1, figsize=(5, 5))
     
     result_path = save_plot_path / Path(file_suffix.lstrip('_'))
 
@@ -94,7 +94,7 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
             rounds_loss = rounds_loss[:len(values_loss)]
         
         ax1.plot(rounds_acc, values_acc, label=strategy)
-        ax2.plot(rounds_loss, values_loss, label=strategy)
+        #ax2.plot(rounds_loss, values_loss, label=strategy)
 
     ax1.set_title(f"Centralized Validation Accuracy - {dataset}")
     ax1.set_xlabel("Rounds")
@@ -103,16 +103,16 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
     
 
     ax1.set_ylim([0.1, 1])
-    ax2.set_ylim([0, 9])
+    #ax2.set_ylim([0, 9])
 
     if dataset == "MNIST" and "honest" in str(result_path):
         ax1.set_ylim([0.7, 1])
-        ax2.set_ylim([0, 4])
+     #   ax2.set_ylim([0, 4])
 
-    ax2.set_title(f"Centralized Training Loss - {dataset}")
-    ax2.set_xlabel("Rounds")
-    ax2.set_ylabel("Loss")
-    ax2.legend(loc="upper right")
+    # ax2.set_title(f"Centralized Training Loss - {dataset}")
+    # ax2.set_xlabel("Rounds")
+    # ax2.set_ylabel("Loss")
+    # ax2.legend(loc="upper right")
     
     
     plt.tight_layout()
