@@ -1,6 +1,6 @@
 import subprocess
 import argparse
-from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files, check_arguments, save_target_accuracy_to_csv
+from clientcontributionfl.utils import cleanup_proofs, plot_comparison_from_files, check_arguments, save_target_accuracy_to_csv, plot_accuracy_for_different_x, save_max_accuracy_to_csv
 from flwr.common.config import get_project_config
 from pathlib import Path
 
@@ -63,9 +63,9 @@ def add_parser_arguments(parser : argparse.ArgumentParser):
 def run_simulations(args):
     """Run simulation for each strategy."""
     strategies = args.strategies
-    for strategy in strategies:
-        cleanup_proofs()
-        run_simulation(args, strategy)
+    # for strategy in strategies:
+    #     cleanup_proofs()
+    #     run_simulation(args, strategy)
 
 def run_simulation(args, strategy):
 
@@ -139,11 +139,18 @@ def save_training_rounds(strategies, config):
     dishonest = "dishonest" if config["dishonest"] else "honest"
     results_path = Path(config["save_path"]) / Path("simulation") / Path(dataset) / Path(dishonest) 
 
-    training_rounds_paths = save_target_accuracy_to_csv(
+    # training_rounds_paths = save_target_accuracy_to_csv(
+    #     save_csv_path=results_path,
+    #     config=config,
+    #     strategies=strategies
+    # )
+
+    training_rounds_paths = save_max_accuracy_to_csv(
         save_csv_path=results_path,
         config=config,
         strategies=strategies
     )
+
     return training_rounds_paths
     
 

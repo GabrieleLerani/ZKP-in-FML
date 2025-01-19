@@ -96,24 +96,26 @@ def plot_comparison_from_files(save_plot_path: Path, config: dict[str, any], str
         ax1.plot(rounds_acc, values_acc, label=strategy)
         #ax2.plot(rounds_loss, values_loss, label=strategy)
 
-    ax1.set_title(f"Centralized Validation Accuracy - {dataset}")
+    #ax1.set_title(f"Centralized Validation Accuracy - {dataset}")
     ax1.set_xlabel("Rounds")
     ax1.set_ylabel("Accuracy")
-    ax1.legend(loc="lower right")
+
+    if dataset == "CIFAR10":
+        ax1.legend(fontsize=16,loc="upper right")    
+    else:
+        ax1.legend(fontsize=16,loc="lower right")
     
 
     ax1.set_ylim([0.1, 1])
-    #ax2.set_ylim([0, 9])
-
+    
     if dataset == "MNIST" and "honest" in str(result_path):
         ax1.set_ylim([0.7, 1])
-     #   ax2.set_ylim([0, 4])
-
-    # ax2.set_title(f"Centralized Training Loss - {dataset}")
-    # ax2.set_xlabel("Rounds")
-    # ax2.set_ylabel("Loss")
-    # ax2.legend(loc="upper right")
-    
+        
+    ax1.tick_params(axis='x', labelsize=18)  
+    ax1.tick_params(axis='y', labelsize=18)  
+    ax1.set_xlabel(ax1.get_xlabel(), fontsize=18)  
+    ax1.set_ylabel(ax1.get_ylabel(), fontsize=18)  
+        
     
     plt.tight_layout()
     
@@ -168,6 +170,40 @@ def save_target_accuracy_to_csv(save_csv_path: Path, config: dict[str, any], str
     print(f"Target accuracy data saved to {csv_file_path}")
     return result_path
 
+
+def save_max_accuracy_to_csv(save_csv_path: Path, config: dict[str, any], strategies: List[str]):
+    """
+    Save the maximum accuracy reached and the round where it was achieved for each strategy to a CSV file.
+    """
+    dataset = config["dataset_name"]
+    file_suffix = generate_file_suffix(config)
+    result_path = save_csv_path / Path(file_suffix.lstrip('_'))
+    csv_file_path = result_path / "max_accuracy.csv"
+
+    # Ensure the directory for the CSV file exists
+    if not result_path.exists():
+        result_path.mkdir(parents=True, exist_ok=True)
+
+    with open(csv_file_path, mode="w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        # Write the header
+        writer.writerow(["Algorithm", f"Max Accuracy ({dataset})", "Rounds to Max Accuracy"])
+
+        for strategy in strategies:
+            file_path = result_path / f"history_S={strategy}.npy"
+            history = np.load(file_path, allow_pickle=True).item()
+            rounds_acc, values_acc = zip(*history.metrics_centralized["accuracy"])
+
+            # Find the maximum accuracy and its corresponding round
+            max_accuracy = max(values_acc)
+            max_accuracy_round = rounds_acc[values_acc.index(max_accuracy)]
+
+            # Write the data to the CSV
+            writer.writerow([strategy, max_accuracy, max_accuracy_round])
+
+    print(f"Maximum accuracy data saved to {csv_file_path}")
+    return result_path
+
 def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
     """
     Plots accuracy from specified paths for different values of X.
@@ -178,7 +214,7 @@ def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
     """
     x_values = [0.1, 0.3, 0.5]
     iid_ratio = [0.3, 0.5, 0.7]
-    plt.figure(figsize=(8, 10))
+    plt.figure(figsize=(8, 6))
     
     
     for x, iid_ratio in zip(x_values, iid_ratio):
@@ -194,13 +230,20 @@ def plot_accuracy_for_different_x(save_plot_path: Path, filename: str):
         # Plot the accuracy
         plt.plot(np.asarray(rounds_acc), values_acc, label=f"iid_ratio={iid_ratio}")
 
-    plt.title("PoC centralized accuracy - FMNIST")
-    plt.xlabel("Rounds")
-    plt.ylabel("Accuracy")
-    plt.legend(loc="lower right")
+    
+    plt.xlabel("Rounds", fontsize=18)
+    plt.ylabel("Accuracy", fontsize=18)
+    plt.legend(loc="upper right", fontsize=18)
     plt.ylim([0.1, 1])
     plt.tight_layout()
+
     
+        
+    plt.tick_params(axis='x', labelsize=18)  
+    plt.tick_params(axis='y', labelsize=18)  
+    # plt.set_xlabel(plt.get_xlabel(), fontsize=18)  
+    # plt.set_ylabel(plt.get_ylabel(), fontsize=18)  
+
     plt.savefig(save_plot_path / "accuracy_comparison.png")
     plt.close()
 
