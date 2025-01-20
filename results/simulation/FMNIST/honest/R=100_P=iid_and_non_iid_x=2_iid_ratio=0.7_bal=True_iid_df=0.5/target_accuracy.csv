@@ -4,5 +4,5 @@ ZkAvg,10
 ContAvg,8
 FedAvg,8
 FedAdam,12
-FedAvgM,0
+FedAvgM,18
 FedProx,8

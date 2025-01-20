@@ -1,4 +1,4 @@
-datasets=("FMNIST" "MNIST" "CIFAR10")
+datasets=("FMNIST" )
 iid_ratios=(0.3 0.5 0.7)
 
 num_nodes=10
@@ -27,8 +27,8 @@ for dataset in "${datasets[@]}"; do
     $cmd
 
     # Run with --dishonest flag
-    cmd+=" --dishonest"
-    echo "Running with --dishonest: $cmd"
-    $cmd
+    # cmd+=" --dishonest"
+    # echo "Running with --dishonest: $cmd"
+    # $cmd
   done
 done
