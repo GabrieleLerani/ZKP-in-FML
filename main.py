@@ -52,11 +52,12 @@ def add_parser_arguments(parser : argparse.ArgumentParser):
     parser.add_argument("--dataset", type=str, default="MNIST", choices=["MNIST", "CIFAR10", "FMNIST"], help="Dataset to use for the simulation.")
     parser.add_argument("--x", type=int, default=2, help="Number of labels of non-IID clients.")
     parser.add_argument("--d", type=int, default=5, help="Size of the candidate set used in PoC.")
-    parser.add_argument("--thr", type=int, default=400, help="Num of minimum label to have positive contribution.")
+    parser.add_argument("--diversity_thr", type=int, default=400, help="Num of minimum label to have positive contribution.")
     parser.add_argument("--smoothed_plot", action="store_true", default=False, help="If true, plots are computed with a moving average.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate used during training.")
     parser.add_argument("--lr_decay", type=float, default=0.995, help="Learning rate decay value.")
     parser.add_argument("--batch_size", type=int, default=10, help="Batch size.")
+    
     
     return parser.parse_args()    
 
@@ -85,12 +86,15 @@ def run_simulation(args, strategy):
             f'dishonest={str(args.dishonest).lower()} '
             f'dataset_name="{args.dataset}" '
             f'd={args.d} '
-            f'thr={args.thr} '
+            f'thr={args.diversity_thr} '
             f'lr={args.lr} '
             f'decay_per_round={args.lr_decay} '
             f'batch_size={args.batch_size}'
+            
         )
     ]
+
+    
     
     result = subprocess.run(command, stderr=subprocess.STDOUT, stdout=None, text=True)
     

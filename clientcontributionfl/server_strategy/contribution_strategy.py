@@ -78,6 +78,10 @@ class ContributionAvg(FedAvg):
         """Filter clients based on their contribution score."""
         
         filtered_clients = [c for c in clients if self.client_data[c.cid] >= self.discarding_threshold]
+        
+        for c in filtered_clients:
+            print("SELECTED: ",c.cid)
+
         return filtered_clients
 
 
