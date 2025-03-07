@@ -261,7 +261,7 @@ To run the Federated Learning simulation:
    ```
    python main.py --strategies ZkAvg,ContAvg,FedAvg --num_rounds 10 --num_nodes 10
    ```
-Execute the `run.sh` script in order to simulate all the algorithms for all the dataset under iid settings.
+Execute the `run.sh` script in order to run the simulation of the paper. Execute `run_poc.sh` to run simulation of power of choice. Be sure that **Ganache blockchain** is active when you run a ZK-based algorithm, otherwise the simulation will file.
 
 ## Results 📊
 The results of the training, including accuracy scores and any generated plots, will be saved in the `results/` directory.
